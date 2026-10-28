@@ -77,6 +77,7 @@
             text-align: center; 
             outline: none; 
             width: 250px;
+            text-transform: uppercase; /* Forces uppercase display */
         }
 
         .puzzle-text {
@@ -173,8 +174,10 @@
                 startLevel1TabLoop();
                 document.getElementById('l1-input').focus();
             } else if (screenId === 'level-2') {
+                document.title = "PUZZLE 2";
                 document.getElementById('l2-input').focus();
             } else if (screenId === 'level-3') {
+                document.title = "PUZZLE 3";
                 startLevel3TypingLoop();
                 document.getElementById('l3-input').focus();
             }
@@ -207,7 +210,7 @@
                     document.title = morseSequence[index];
                     index++;
                 } else {
-                    document.title = " ";
+                    document.title = "PUZZLE 1";
                     clearInterval(morseInterval);
                 }
             }, 1000);
@@ -223,7 +226,7 @@
 
             typingInterval = setInterval(() => {
                 if (charIndex < textToType.length) {
-                    inputField.value += textToType.charAt(charIndex);
+                    inputField.value += textToType.charAt(charIndex).toUpperCase();
                     charIndex++;
                 } else {
                     clearInterval(typingInterval);
