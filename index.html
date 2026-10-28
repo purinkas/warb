@@ -111,7 +111,7 @@
     <!-- LEVEL 1 -->
     <div id="level-1" class="screen">
         <div style="display: flex; flex-direction: column; align-items: center;">
-            <input type="text" id="l1-input" class="stealth-input" autocomplete="off" autofocus>
+            <input type="text" id="l1-input" class="stealth-input" autocomplete="off">
             <button class="btn" onclick="checkLevel1()" style="margin-top: 20px;">Submit</button>
         </div>
     </div>
@@ -130,7 +130,6 @@
     <!-- LEVEL 3 -->
     <div id="level-3" class="screen">
         <div style="display: flex; flex-direction: column; align-items: center;">
-            <!-- Placeholder attribute functions as the canvas for the typing text -->
             <input type="text" id="l3-input" class="stealth-input" autocomplete="off">
             <button class="btn" onclick="checkLevel3()" style="margin-top: 20px;">Submit</button>
         </div>
@@ -214,16 +213,14 @@
             }, 1000);
         }
 
-        // --- LEVEL 3 PLAY TYPING LOGIC ---
+        // --- LEVEL 3 TYPING LOGIC ---
         function startLevel3TypingLoop() {
             const inputField = document.getElementById('l3-input');
-            inputField.value = ""; // Clear any remnant text
+            inputField.value = ""; 
             
-            // The binary content converted to readable chunks
             const textToType = "01110000 01100001 01110100 01101001 01100101 01101110 01100011 01100101";
             let charIndex = 0;
 
-            // Simulates the binary string rolling slowly out into the box
             typingInterval = setInterval(() => {
                 if (charIndex < textToType.length) {
                     inputField.value += textToType.charAt(charIndex);
@@ -231,7 +228,7 @@
                 } else {
                     clearInterval(typingInterval);
                 }
-            }, 150); // Speed of typing out characters
+            }, 150);
         }
 
         // --- CRYPTOGRAPHIC VALIDATION FOR LEVEL 1 ---
@@ -262,59 +259,67 @@
             
             const encoder = new TextEncoder();
             const data = encoder.encode(input);
-Use code with caution.
-const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-const hashArray = Array.from(new Uint8Array(hashBuffer));
-const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-const correctHash = "d9e15dc426dd9979ae01e9fe9d36f4ca7a14bc0fbfbf00b3b29d5576a43b818e";
-if (hashHex === correctHash) {
-goToLevel('level-3');
-} else {
-inputField.value = "";
-inputField.focus();
-}
-}
-// --- CRYPTOGRAPHIC VALIDATION FOR LEVEL 3 ---
-async function checkLevel3() {
-const inputField = document.getElementById('l3-input');
-const input = inputField.value.trim().toLowerCase();
-const encoder = new TextEncoder();
-const data = encoder.encode(input);
-const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-const hashArray = Array.from(new Uint8Array(hashBuffer));
-const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-// SHA-256 hash for "patience"
-const correctHash = "2b6942c74457639ba31a5c68991a0c4f820c74da5cf21fa0c598006f1da4f938";
-if (hashHex === correctHash) {
-goToLevel('level-4');
-} else {
-// Instantly wipe and restart typing loop if they fail
-inputField.value = "";
-startLevel3TypingLoop();
-inputField.focus();
-}
-}
-// Listen for Enter key submission globally depending on active screen
-document.addEventListener('keypress', (e) => {
-if (e.key === 'Enter') {
-if (document.getElementById('level-1').classList.contains('active')) {
-checkLevel1();
-} else if (document.getElementById('level-2').classList.contains('active')) {
-checkLevel2();
-} else if (document.getElementById('level-3').classList.contains('active')) {
-checkLevel3();
-}
-}
-});
-// Anti-Inspect Element Deterrents
-document.addEventListener('contextmenu', event => event.preventDefault());
-document.addEventListener('keydown', event => {
-if (
-event.key === 'F12' ||
-(event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'C' || event.key === 'J')) ||
-(event.ctrlKey && event.key === 'U')
-) {
-event.preventDefault();
-alert("Inspect element is not allowed.");
-}
-});
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            const correctHash = "d9e15dc426dd9979ae01e9fe9d36f4ca7a14bc0fbfbf00b3b29d5576a43b818e";
+
+            if (hashHex === correctHash) {
+                goToLevel('level-3');
+            } else {
+                inputField.value = "";
+                inputField.focus();
+            }
+        }
+
+        // --- CRYPTOGRAPHIC VALIDATION FOR LEVEL 3 ---
+        async function checkLevel3() {
+            const inputField = document.getElementById('l3-input');
+            const input = inputField.value.trim().toLowerCase();
+            
+            const encoder = new TextEncoder();
+            const data = encoder.encode(input);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            const correctHash = "2b6942c74457639ba31a5c68991a0c4f820c74da5cf21fa0c598006f1da4f938";
+
+            if (hashHex === correctHash) {
+                goToLevel('level-4');
+            } else {
+                inputField.value = "";
+                startLevel3TypingLoop();
+                inputField.focus();
+            }
+        }
+
+        // Listen for Enter key submission globally depending on active screen
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                if (document.getElementById('level-1').classList.contains('active')) {
+                    checkLevel1();
+                } else if (document.getElementById('level-2').classList.contains('active')) {
+                    checkLevel2();
+                } else if (document.getElementById('level-3').classList.contains('active')) {
+                    checkLevel3();
+                }
+            }
+        });
+
+        // Anti-Inspect Element Deterrents
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('keydown', event => {
+            if (
+                event.key === 'F12' ||
+                (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'C' || event.key === 'J')) ||
+                (event.ctrlKey && event.key === 'U')
+            ) {
+                event.preventDefault();
+                alert("Inspect element is not allowed.");
+            }
+        });
+    </script>
+</body>
+</html>
