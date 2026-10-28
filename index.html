@@ -146,7 +146,7 @@
     <script>
         const morseSequence = ["-", "...", ".", "--.", "..", "-.", "-.", "..", "-.", "--."];
         let morseInterval = null;
-        let typingInterval = null;
+        let level3Audio = null;
 
         // On page load, manage saved progress states
         window.addEventListener('DOMContentLoaded', () => {
@@ -165,10 +165,16 @@
             });
             document.getElementById(screenId).classList.add('active');
 
-            // Reset any running puzzle intervals to keep performance clean
+            // Reset running intervals
             clearInterval(morseInterval);
-            clearInterval(typingInterval);
             document.title = "The Puzzle";
+
+            // Stop Level 3 audio if navigating away from level-3
+            if (screenId !== 'level-3' && level3Audio) {
+                level3Audio.pause();
+                level3Audio.currentTime = 0;
+                level3Audio = null;
+            }
 
             if (screenId === 'level-1') {
                 startLevel1TabLoop();
@@ -178,7 +184,14 @@
                 document.getElementById('l2-input').focus();
             } else if (screenId === 'level-3') {
                 document.title = "PUZZLE 3";
-                startLevel3TypingLoop();
+                document.getElementById('l3-input').value = "";
+                
+                // Play dontread.mp3 automatically
+                level3Audio = new Audio('dontread.mp3');
+                level3Audio.play().catch(err => {
+                    console.log("Audio autoplay was restricted by browser:", err);
+                });
+
                 document.getElementById('l3-input').focus();
             }
         }
@@ -198,6 +211,11 @@
         }
 
         function resetGame() {
+            if (level3Audio) {
+                level3Audio.pause();
+                level3Audio.currentTime = 0;
+                level3Audio = null;
+            }
             localStorage.removeItem('puzzleProgress');
             showScreen('main-screen');
         }
@@ -214,24 +232,6 @@
                     clearInterval(morseInterval);
                 }
             }, 1000);
-        }
-
-        // --- LEVEL 3 TYPING LOGIC ---
-        function startLevel3TypingLoop() {
-            const inputField = document.getElementById('l3-input');
-            inputField.value = ""; 
-            
-            const textToType = "01110000 01100001 01110100 01101001 01100101 01101110 01100011 01100101";
-            let charIndex = 0;
-
-            typingInterval = setInterval(() => {
-                if (charIndex < textToType.length) {
-                    inputField.value += textToType.charAt(charIndex).toUpperCase();
-                    charIndex++;
-                } else {
-                    clearInterval(typingInterval);
-                }
-            }, 150);
         }
 
         // --- VALIDATION FOR LEVEL 1 ---
@@ -266,10 +266,14 @@
             const input = inputField.value.trim().toLowerCase();
             
             if (input === "patience") {
+                if (level3Audio) {
+                    level3Audio.pause();
+                    level3Audio.currentTime = 0;
+                    level3Audio = null;
+                }
                 goToLevel('level-4');
             } else {
                 inputField.value = "";
-                startLevel3TypingLoop();
                 inputField.focus();
             }
         }
