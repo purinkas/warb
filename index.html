@@ -352,7 +352,6 @@
             const inputField = document.getElementById('l2-input');
             const input = inputField.value.trim().toLowerCase();
             
-            // Standard submit fallback if they type an intended answer
             if (input === "answer2") {
                 goToLevel('level-3');
             } else {
@@ -374,8 +373,15 @@
             }
         }
 
-        // Listen for Enter key submission globally depending on active screen
-        document.addEventListener('keypress', (e) => {
+        // Global key listeners (Enter to submit, Shift + R to restart)
+        document.addEventListener('keydown', (e) => {
+            // Shift + R global restart shortcut
+            if (e.shiftKey && (e.key === 'R' || e.key === 'r')) {
+                e.preventDefault();
+                resetGame();
+                return;
+            }
+
             if (e.key === 'Enter') {
                 if (document.getElementById('level-1').classList.contains('active')) {
                     checkLevel1();
