@@ -139,7 +139,7 @@
             border-color: #ffffff;
         }
 
-        /* Level 2 Eye Styling */
+        /* Level 2 & General Eye Styling */
         .eye-container {
             width: 80px;
             height: 40px;
@@ -201,6 +201,108 @@
             transition: color 0.2s;
         }
 
+        /* Level 5 Customer Service Styling */
+        #level-5 {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .cs-eye-container {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            width: 70px;
+            height: 35px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .cs-pupil {
+            width: 20px;
+            height: 20px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .speech-bubble {
+            position: absolute;
+            top: 90px;
+            left: 40px;
+            border: 2px solid #ffffff;
+            background-color: #000000;
+            padding: 20px;
+            max-width: 450px;
+            text-align: left;
+            font-size: 15px;
+            line-height: 1.5;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+            transition: opacity 0.3s ease;
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 30px;
+            border-width: 0 10px 10px 10px;
+            border-style: solid;
+            border-color: transparent transparent #ffffff transparent;
+        }
+
+        .dialogue-options {
+            margin-top: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .dialogue-btn {
+            background-color: #000000;
+            color: #ffffff;
+            border: 1px solid #666;
+            padding: 10px 15px;
+            font-size: 14px;
+            font-family: inherit;
+            text-align: left;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .dialogue-btn:hover {
+            border-color: #ffffff;
+            color: #ff0000;
+        }
+
+        /* Door Outline Style for Level 5 Completion */
+        .door-outline {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 180px;
+            border: 3px solid #ffffff;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .door-outline:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
         /* Lockout Screen Styling */
         #lockout-screen {
             position: fixed;
@@ -235,7 +337,7 @@
     </div>
 
     <!-- TOP COPIED TOAST NOTIFICATION -->
-    <div id="copied-toast" class="copied-toast" style="position:fixed; top:15px; left:50%; transform:translateX(-50%); color:#444; font-size:12px; letter-spacing:1px; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:1000;">Copied.</div>
+    <div id="copied-toast" class="copied-toast" style="position:fixed; top:15px; left:50%; transform:translateX(-50%); color:#ffffff; background:#000; border: 1px solid #fff; padding: 6px 16px; font-size:12px; letter-spacing:1px; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:1000;">Copied to clipboard...</div>
 
     <!-- MAIN MENU SCREEN -->
     <div id="main-screen" class="screen">
@@ -303,6 +405,21 @@
         <div id="l4-timer" class="l4-timer-display">5</div>
     </div>
 
+    <!-- LEVEL 5 -->
+    <div id="level-5" class="screen">
+        <div id="cs-eye" class="cs-eye-container" onclick="handleCsEyeClick()">
+            <div id="cs-pupil" class="cs-pupil"></div>
+        </div>
+        <div id="cs-bubble" class="speech-bubble">
+            <p id="cs-dialogue-text">"Hello! My name is [REDACTED], and welcome to customer support!"</p>
+            <div class="dialogue-options" id="cs-options-container">
+                <button class="dialogue-btn" onclick="handleCsChoice(1)">1. Who are you?</button>
+                <button class="dialogue-btn" onclick="handleCsChoice(2)">2. Why do I see you in some of the puzzles?</button>
+            </div>
+        </div>
+        <div id="level5-door" class="door-outline" onclick="handleDoorClick()"></div>
+    </div>
+
     <!-- LEVEL 6 (Final 10-Minute Trial) -->
     <div id="level-6" class="screen">
         <div style="display: flex; flex-direction: column; align-items: center;">
@@ -332,6 +449,11 @@
         let l4TimerInterval = null;
         let l4TensionInterval = null;
         let l4IsActive = false;
+
+        // Level 5 tracking states
+        let csChoicesClicked = { 1: false, 2: false };
+        let csStage = 1; // 1: initial options, 2: after first 2 clicked (shows Q3), 3: after Q3 clicked (redacted paragraph), 4: eye clickable/door ready
+        let csTwitchInterval = null;
 
         // Level 6 (Final Trial) variables
         let l6Active = false;
@@ -400,6 +522,7 @@
             resetRedEye();
             stopLevel4();
             stopLevel6();
+            stopLevel5Twitch();
 
             if (screenId === 'level-1') {
                 document.title = "PUZZLE 1";
@@ -428,6 +551,7 @@
                 startLevel4();
             } else if (screenId === 'level-5') {
                 document.title = "Customer Service";
+                resetLevel5();
             } else if (screenId === 'level-6') {
                 document.getElementById('l6-input').value = "";
                 document.getElementById('l6-input').focus();
@@ -450,6 +574,7 @@
             resetRedEye();
             stopLevel4();
             stopLevel6();
+            stopLevel5Twitch();
             localStorage.setItem('puzzleProgress', levelId);
             showScreen(levelId);
         }
@@ -458,6 +583,7 @@
             resetRedEye();
             stopLevel4();
             stopLevel6();
+            stopLevel5Twitch();
             localStorage.removeItem('puzzleProgress');
             showScreen('main-screen');
         }
@@ -484,8 +610,9 @@
             }
         }
 
-        // --- LEVEL 2 CURSOR TRACKING & EYE MECHANICS ---
+        // --- GLOBAL CURSOR TRACKING FOR EYES ---
         document.addEventListener('mousemove', (e) => {
+            // Level 2 Eye Tracking
             if (document.getElementById('level-2').classList.contains('active')) {
                 if (!isEyeClosed && !isEyeRed) {
                     const eye = document.getElementById('puzzle-eye');
@@ -496,6 +623,22 @@
 
                     const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
                     const distance = Math.min(12, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY) / 4);
+
+                    pupil.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
+                }
+            }
+
+            // Level 5 Eye Tracking (unless twitching / stage 4)
+            if (document.getElementById('level-5').classList.contains('active') && csStage < 4) {
+                const eye = document.getElementById('cs-eye');
+                const pupil = document.getElementById('cs-pupil');
+                if (eye && pupil) {
+                    const rect = eye.getBoundingClientRect();
+                    const eyeCenterX = rect.left + rect.width / 2;
+                    const eyeCenterY = rect.top + rect.height / 2;
+
+                    const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
+                    const distance = Math.min(8, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY) / 6);
 
                     pupil.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
                 }
@@ -716,7 +859,7 @@
 
                 if (document.hidden || document.visibilityState === 'hidden') {
                     stopLevel4();
-                    goToLevel('level-6');
+                    goToLevel('level-5');
                 } else {
                     stopLevel4();
                     window.close();
@@ -729,7 +872,7 @@
             if (l4IsActive && (document.hidden || document.visibilityState === 'hidden')) {
                 if (l4Countdown <= 0) {
                     stopLevel4();
-                    goToLevel('level-6');
+                    goToLevel('level-5');
                 }
             }
         });
@@ -737,7 +880,7 @@
         window.addEventListener('blur', () => {
             if (l4IsActive && l4Countdown <= 0) {
                 stopLevel4();
-                goToLevel('level-6');
+                goToLevel('level-5');
             }
         });
 
@@ -748,6 +891,126 @@
             document.body.style.backgroundColor = "#000000";
             const l4Screen = document.getElementById('level-4');
             if (l4Screen) l4Screen.style.transform = "translate(0px, 0px)";
+        }
+
+        // --- LEVEL 5 CUSTOMER SERVICE LOGIC ---
+        function resetLevel5() {
+            csStage = 1;
+            csChoicesClicked = { 1: false, 2: false };
+            stopLevel5Twitch();
+
+            const bubble = document.getElementById('cs-bubble');
+            bubble.style.opacity = "1";
+            document.getElementById('cs-eye').classList.remove('eye-closed');
+            document.getElementById('cs-eye').style.pointerEvents = "none";
+            document.getElementById('level5-door').style.display = "none";
+
+            document.getElementById('cs-dialogue-text').textContent = '"Hello! My name is [REDACTED], and welcome to customer support!"';
+            document.getElementById('cs-options-container').innerHTML = `
+                <button class="dialogue-btn" onclick="handleCsChoice(1)">1. Who are you?</button>
+                <button class="dialogue-btn" onclick="handleCsChoice(2)">2. Why do I see you in some of the puzzles?</button>
+            `;
+        }
+
+        function handleCsChoice(optionNum) {
+            const dialogueText = document.getElementById('cs-dialogue-text');
+            const optionsContainer = document.getElementById('cs-options-container');
+
+            if (csStage === 1) {
+                csChoicesClicked[optionNum] = true;
+
+                if (optionNum === 1) {
+                    dialogueText.textContent = '"I am [REDACTED], but you can call me Eye! My goal is to help you with our website with any information you need."';
+                } else if (optionNum === 2) {
+                    dialogueText.textContent = '"Oh, that\'s simple! I serve no threat, I simply [REDACTED SENTIENCE]"';
+                }
+
+                // If both options 1 and 2 have been clicked, advance to Stage 2 (Reveal Question 3)
+                if (csChoicesClicked[1] && csChoicesClicked[2]) {
+                    csStage = 2;
+                    setTimeout(() => {
+                        dialogueText.textContent = '"Is there anything else you require assistance with?"';
+                        optionsContainer.innerHTML = `
+                            <button class="dialogue-btn" onclick="handleCsChoice(3)">3. How do I get divine wisdom?</button>
+                        `;
+                    }, 2500);
+                }
+            } else if (csStage === 2 && optionNum === 3) {
+                csStage = 3;
+                // Reveal redacted paragraph, hide options
+                dialogueText.textContent = '"[REDACTED RE_DACTED_ED RE-DACTED WISDOM PATHWAY RESTRICTED BY HIGHER PROTOCOLS... SEARCH THE ETERNAL TEXTS WITHIN THE SYSTEM ARCHIVES.]"';
+                optionsContainer.innerHTML = "";
+
+                // After a brief pause, transition to stage 4 (Eye twitching & clickable)
+                setTimeout(() => {
+                    csStage = 4;
+                    document.getElementById('cs-eye').style.pointerEvents = "auto";
+                    startLevel5Twitch();
+                }, 4000);
+            }
+        }
+
+        function startLevel5Twitch() {
+            clearInterval(csTwitchInterval);
+            csTwitchInterval = setInterval(() => {
+                if (csStage === 4) {
+                    const pupil = document.getElementById('cs-pupil');
+                    if (pupil) {
+                        const twitchX = (Math.random() - 0.5) * 12;
+                        const twitchY = (Math.random() - 0.5) * 12;
+                        pupil.style.transform = `translate(${twitchX}px, ${twitchY}px)`;
+                    }
+                }
+            }, 1200);
+        }
+
+        function stopLevel5Twitch() {
+            clearInterval(csTwitchInterval);
+        }
+
+        function handleCsEyeClick() {
+            if (csStage === 4) {
+                stopLevel5Twitch();
+                // Close the eye permanently
+                const eye = document.getElementById('cs-eye');
+                eye.classList.add('eye-closed');
+                eye.style.pointerEvents = "none";
+
+                // Fade out text bubble
+                const bubble = document.getElementById('cs-bubble');
+                bubble.style.opacity = "0";
+                setTimeout(() => {
+                    bubble.style.display = "none";
+                }, 300);
+
+                // Reveal door outline
+                document.getElementById('level5-door').style.display = "flex";
+            }
+        }
+
+        function handleDoorClick() {
+            // Copy binary code to clipboard
+            const codeToCopy = "----- .---- .---- ----- .---- .---- ----- .---- / ----- .---- .---- ----- ----- ----- ----- .---- / ----- .---- .---- ----- .---- ----- ----- ----- / ----- .---- .---- ----- ----- ----- ----- .---- / ----- .---- .---- .---- ----- ----- ----- ----- / ----- .---- .---- .---- ----- ----- .---- ----- / ----- .---- .---- ----- ----- ----- ----- .---- / ----- .---- .---- ----- .---- ----- .---- ----- / ----- .---- .---- ----- .---- .---- .---- ----- / ----- .---- .---- ----- ----- ----- ----- .---- / ----- .---- .---- .---- ----- ----- ----- ----- / ----- .---- .---- ----- ----- ----- ----- .---- / ----- .---- .---- .---- ----- ----- .---- ----- / ----- .---- .---- ----- ----- ----- ----- .---- / ----- .---- .---- ----- .---- .---- ----- .---- / ----- .---- .---- ----- .---- ----- ----- .---- / ----- .---- .---- .---- ----- .---- ----- ----- / ----- .---- .---- ----- ----- ----- ----- .----";
+            
+            navigator.clipboard.writeText(codeToCopy).then(() => {
+                showToast();
+            }).catch(() => {
+                // Fallback for strict browsers
+                showToast();
+            });
+
+            // Transition to level 6 after a brief beat
+            setTimeout(() => {
+                goToLevel('level-6');
+            }, 800);
+        }
+
+        function showToast() {
+            const toast = document.getElementById('copied-toast');
+            toast.style.opacity = "1";
+            setTimeout(() => {
+                toast.style.opacity = "0";
+            }, 2500);
         }
 
         // --- LEVEL 6 (10-MINUTE FINAL TRIAL) MECHANICS ---
