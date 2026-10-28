@@ -171,7 +171,7 @@
         }
 
         .eye-closed .pupil {
-            display: none;
+            display: none !important;
         }
 
         /* Crimson button for 10s wait event */
@@ -240,13 +240,14 @@
             left: 40px;
             border: 2px solid #ffffff;
             background-color: #000000;
+            color: #ffffff;
             padding: 20px;
             max-width: 450px;
             text-align: left;
             font-size: 15px;
             line-height: 1.5;
             box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-            transition: opacity 0.3s ease;
+            transition: opacity 0.3s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
 
         .speech-bubble::after {
@@ -257,6 +258,25 @@
             border-width: 0 10px 10px 10px;
             border-style: solid;
             border-color: transparent transparent #ffffff transparent;
+            transition: border-color 0.3s ease;
+        }
+
+        /* Classified Redacted Style (White bubble, black text, black highlights) */
+        .speech-bubble.classified {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border-color: #ffffff !important;
+        }
+
+        .speech-bubble.classified::after {
+            border-color: transparent transparent #ffffff transparent !important;
+        }
+
+        .redacted-bar {
+            background-color: #000000;
+            color: #000000;
+            padding: 0 4px;
+            user-select: none;
         }
 
         .dialogue-options {
@@ -799,6 +819,7 @@
             l4Countdown = 5;
             const timerEl = document.getElementById('l4-timer');
             const eyeEl = document.getElementById('l4-eye');
+            eyeEl.classList.add('eye-closed'); // Pupil is hidden right from the start
             timerEl.textContent = l4Countdown;
             timerEl.style.color = "#ffffff";
             eyeEl.style.borderColor = "#ffffff";
@@ -847,24 +868,16 @@
             const eyeEl = document.getElementById('l4-eye');
             const timerEl = document.getElementById('l4-timer');
             
-            eyeEl.classList.remove('eye-closed');
+            eyeEl.classList.add('eye-closed'); // Keep pupil hidden when triggered
             eyeEl.style.borderColor = "#ff0000";
-            const pupil = eyeEl.querySelector('.pupil');
-            if (pupil) pupil.style.backgroundColor = "#ff0000";
             timerEl.style.color = "#ff0000";
             document.body.style.backgroundColor = "#800000";
 
             setTimeout(() => {
                 if (!l4IsActive) return;
 
-                if (document.hidden || document.visibilityState === 'hidden') {
-                    stopLevel4();
-                    goToLevel('level-5');
-                } else {
-                    stopLevel4();
-                    window.close();
-                    window.location.href = "about:blank";
-                }
+                stopLevel4();
+                window.close(); // Force close tab on failure
             }, 250);
         }
 
@@ -872,7 +885,7 @@
             if (l4IsActive && (document.hidden || document.visibilityState === 'hidden')) {
                 if (l4Countdown <= 0) {
                     stopLevel4();
-                    goToLevel('level-5');
+                    window.close();
                 }
             }
         });
@@ -880,7 +893,7 @@
         window.addEventListener('blur', () => {
             if (l4IsActive && l4Countdown <= 0) {
                 stopLevel4();
-                goToLevel('level-5');
+                window.close();
             }
         });
 
@@ -901,6 +914,7 @@
 
             const bubble = document.getElementById('cs-bubble');
             bubble.style.opacity = "1";
+            bubble.classList.remove('classified');
             document.getElementById('cs-eye').classList.remove('eye-closed');
             document.getElementById('cs-eye').style.pointerEvents = "none";
             document.getElementById('level5-door').style.display = "none";
@@ -937,8 +951,13 @@
                 }
             } else if (csStage === 2 && optionNum === 3) {
                 csStage = 3;
-                // Reveal redacted paragraph, hide options
-                dialogueText.textContent = '"[REDACTED RE_DACTED_ED RE-DACTED WISDOM PATHWAY RESTRICTED BY HIGHER PROTOCOLS... SEARCH THE ETERNAL TEXTS WITHIN THE SYSTEM ARCHIVES.]"';
+                
+                // Switch speech bubble to classified redacted styling (White box, black text, black redaction bars)
+                const bubble = document.getElementById('cs-bubble');
+                bubble.classList.add('classified');
+
+                // Reveal redacted paragraph with highlighted black boxes
+                dialogueText.innerHTML = '"WISDOM PATHWAY <span class="redacted-bar">RESTRICTED</span> BY HIGHER PROTOCOLS... <span class="redacted-bar">SEARCH</span> THE ETERNAL <span class="redacted-bar">TEXTS</span> WITHIN THE SYSTEM ARCHIVES."';
                 optionsContainer.innerHTML = "";
 
                 // After a brief pause, transition to stage 4 (Eye twitching & clickable)
@@ -995,7 +1014,6 @@
             navigator.clipboard.writeText(codeToCopy).then(() => {
                 showToast();
             }).catch(() => {
-                // Fallback for strict browsers
                 showToast();
             });
 
