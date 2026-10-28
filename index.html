@@ -275,6 +275,7 @@
                 inputField.focus();
             } else if (screenId === 'level-3') {
                 document.title = "PUZZLE 3";
+                document.getElementById('l3-input').value = ""; // Clear input to prevent leftover states
                 document.getElementById('l3-input').focus();
             }
         }
@@ -289,6 +290,7 @@
         }
 
         function goToLevel(levelId) {
+            resetRedEye(); // Ensure red eye clears out whenever changing levels
             localStorage.setItem('puzzleProgress', levelId);
             showScreen(levelId);
         }
@@ -325,7 +327,7 @@
             const eyeCenterY = rect.top + rect.height / 2;
 
             const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
-            const distance = Math.min(12, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterX) / 4);
+            const distance = Math.min(12, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY) / 4);
 
             const pupilX = Math.cos(angle) * distance;
             const pupilY = Math.sin(angle) * distance;
@@ -365,7 +367,7 @@
                     pupil.style.backgroundColor = "#ff0000";
                     pupil.style.transform = "translate(0px, 0px)";
 
-                    // Start accelerating auto-deletion loop using recursive setTimeout
+                    // Start accelerating auto-deletion loop
                     scheduleNextDeletion();
 
                     // Tension shaking, aggressive red tint, and component color synchronization loop (10 seconds)
@@ -378,8 +380,8 @@
                         const redIntensity = Math.floor(progress * 60);
                         document.body.style.backgroundColor = `rgb(${redIntensity}, 0, 0)`;
 
-                        // Stronger synchronized component tint (shifts aggressively toward dark/bright red)
-                        const tintVal = Math.floor(255 - (progress * 220)); // 255 down to 35
+                        // Stronger synchronized component tint
+                        const tintVal = Math.floor(255 - (progress * 220));
                         const tintHex = `rgb(255, ${Math.max(0, tintVal)}, ${Math.max(0, tintVal)})`;
                         inputField.style.color = tintHex;
                         inputField.style.borderColor = tintHex;
@@ -411,7 +413,7 @@
             }
         }
 
-        // Accelerating deletion handler: starts slow (~1200ms) and speeds up (~150ms)
+        // Accelerating deletion handler: humanly paced minimum delay (~350ms floor)
         function scheduleNextDeletion() {
             if (!isEyeRed) return;
 
@@ -419,8 +421,8 @@
             const elapsed = (Date.now() - startTime) / 1000;
             const progress = Math.min(elapsed / 10, 1);
             
-            // Calculate dynamic delay: starts high, shrinks as time passes
-            const currentDelay = Math.max(150, 1200 - (progress * 1050));
+            // Starts at 1400ms and gradually accelerates down to a fair 350ms minimum
+            const currentDelay = Math.max(350, 1400 - (progress * 1050));
 
             deletionTimeout = setTimeout(() => {
                 if (!isEyeRed) return;
@@ -474,27 +476,25 @@
             clearInterval(tensionInterval);
             clearTimeout(survivalTimer);
             
-            // Clear shake and background tint
             document.body.style.backgroundColor = "#000000";
             document.getElementById('level-2').style.transform = "translate(0px, 0px)";
 
             const eye = document.getElementById('puzzle-eye');
             eye.classList.add('eye-closed');
             
-            // Stop deleting, lock textbox, and replace text with red "EYESPY"
             const inputField = document.getElementById('l2-input');
             inputField.value = "EYESPY";
             inputField.style.color = "#ff0000";
             inputField.style.borderColor = "#ff0000";
             inputField.setAttribute('readonly', true);
 
-            // Swap submit for the Crimson Proceed Button
             document.getElementById('l2-submit-btn').style.display = "none";
             document.getElementById('l2-red-btn').style.display = "inline-block";
         }
 
         // --- VALIDATION FOR LEVEL 2 SUBMIT ---
         function checkLevel2() {
+            resetRedEye(); // Treats submit/enter as clearing/resetting state if active
             const inputField = document.getElementById('l2-input');
             const input = inputField.value.trim().toLowerCase();
             
