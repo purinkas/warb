@@ -87,11 +87,12 @@
         }
 
         .puzzle-text {
-            font-size: 16px;
-            line-height: 1.8;
-            margin-bottom: 30px;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 25px;
             word-break: break-word;
-            max-width: 500px;
+            max-width: 520px;
+            text-align: left;
         }
 
         /* Specific style for Level 1 stealth text that can be highlighted/copied */
@@ -185,7 +186,7 @@
     <div id="level-1" class="screen">
         <div class="stealth-hint">Project Architeuthis</div>
         <div style="display: flex; flex-direction: column; align-items: center;">
-            <input type="text" id="l1-input" class="stealth-input" placeholder="ENTER 4 DIGIT PIN" autocomplete="off">
+            <input type="text" id="l1-input" class="stealth-input" placeholder="ENTER 4 DIGIT PIN" maxlength="4" oninput="validateLevel1Input(this)" autocomplete="off">
             <button class="btn" onclick="checkLevel1()" style="margin-top: 20px;">Submit</button>
         </div>
     </div>
@@ -204,7 +205,13 @@
 
     <!-- LEVEL 3 -->
     <div id="level-3" class="screen">
-        <div class="puzzle-text">[ Insert Level 3 Clue Here ]</div>
+        <div class="puzzle-text">
+            <p>any use of ai is prohibited.</p>
+            <p>inspe**C**t element is not allowed, it will never be **A**n answer for one of the p**P**uzzles.</p>
+            <p>external websites <em>**I**re</em> allowed, for example translation sites.</p>
+            <p>there is no "reward" unless i confirm **T**hat there will be one.</p>
+            <p>this website is just m**A**de for fun. if theres any bugs, try to tell me in person or em**L**ail me.</p>
+        </div>
         <div style="display: flex; flex-direction: column; align-items: center;">
             <input type="text" id="l3-input" class="stealth-input" autocomplete="off">
             <button class="btn" onclick="checkLevel3()" style="margin-top: 20px;">Submit</button>
@@ -282,10 +289,15 @@
             showScreen('main-screen');
         }
 
+        // --- LEVEL 1 NUMBER FILTER ---
+        function validateLevel1Input(inputField) {
+            inputField.value = inputField.value.replace(/[^0-9]/g, '');
+        }
+
         // --- LEVEL 2 CURSOR TRACKING & EYE MECHANICS ---
         document.addEventListener('mousemove', (e) => {
             if (!document.getElementById('level-2').classList.contains('active')) return;
-            if (isEyeClosed || isEyeRed) return; // Stop tracking if closed or red
+            if (isEyeClosed || isEyeRed) return;
 
             const eye = document.getElementById('puzzle-eye');
             const pupil = document.getElementById('puzzle-pupil');
@@ -322,9 +334,8 @@
                 const pupil = document.getElementById('puzzle-pupil');
                 eye.style.borderColor = "#ff0000";
                 pupil.style.backgroundColor = "#ff0000";
-                pupil.style.transform = "translate(0px, 0px)"; // Center pupil
+                pupil.style.transform = "translate(0px, 0px)";
 
-                // Start 10-second timer to summon red button
                 clearTimeout(eyeWaitTimer);
                 eyeWaitTimer = setTimeout(() => {
                     if (isEyeRed && document.getElementById('level-2').classList.contains('active')) {
@@ -337,7 +348,7 @@
         // --- VALIDATION FOR LEVEL 1 ---
         function checkLevel1() {
             const inputField = document.getElementById('l1-input');
-            const input = inputField.value.trim().toLowerCase();
+            const input = inputField.value.trim();
             
             if (input === "3301") {
                 goToLevel('level-2');
@@ -365,7 +376,7 @@
             const inputField = document.getElementById('l3-input');
             const input = inputField.value.trim().toLowerCase();
             
-            if (input === "answer3") {
+            if (input === "aaiietriti") {
                 goToLevel('level-4');
             } else {
                 inputField.value = "";
@@ -375,7 +386,6 @@
 
         // Global key listeners (Enter to submit, Shift + R to restart)
         document.addEventListener('keydown', (e) => {
-            // Shift + R global restart shortcut
             if (e.shiftKey && (e.key === 'R' || e.key === 'r')) {
                 e.preventDefault();
                 resetGame();
