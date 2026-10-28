@@ -2,67 +2,319 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Loading...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Puzzle</title>
+    <style>
+        /* Base styles to make the entire screen pure black */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none; /* Prevents text highlighting */
+        }
+
+        /* Screens container */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            max-width: 600px;
+            padding: 20px;
+        }
+
+        /* Make the active screen visible */
+        .active {
+            display: flex;
+        }
+
+        /* Black buttons with white outlines */
+        .btn {
+            background-color: #000000;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-family: inherit;
+            cursor: pointer;
+            margin: 10px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        /* Subtle hover effect */
+        .btn:hover {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        /* Rules page typography */
+        .rules-list {
+            text-align: left;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .rules-list li {
+            margin-bottom: 12px;
+        }
+
+        /* Stealthy Inputs with no standard focus indicators */
+        .stealth-input {
+            background: #000; 
+            color: #fff; 
+            border: 2px solid #fff; 
+            padding: 10px; 
+            font-size: 18px; 
+            font-family: inherit; 
+            text-align: center; 
+            outline: none; 
+            width: 250px;
+        }
+
+        .puzzle-text {
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            word-break: break-word;
+            max-width: 500px;
+        }
+    </style>
 </head>
-<body style="background:#000;">
+<body>
+
+    <!-- MAIN MENU SCREEN -->
+    <div id="main-screen" class="screen">
+        <button class="btn" onclick="showScreen('rules-screen')">Rules</button>
+        <button class="btn" onclick="startPuzzle()">Start</button>
+    </div>
+
+    <!-- RULES SCREEN -->
+    <div id="rules-screen" class="screen">
+        <ul class="rules-list">
+            <li>Any use of AI is prohibited.</li>
+            <li>Inspect element is not allowed, it will never be an answer for one of the puzzles.</li>
+            <li>External websites <em>are</em> allowed, for example translation sites.</li>
+            <li>There is no "Reward" unless I confirm that there will be one.</li>
+            <li>This website is just made for fun. If theres any bugs, try to tell me in person or email me.</li>
+        </ul>
+        <button class="btn" onclick="showScreen('main-screen')">Back</button>
+    </div>
+
+    <!-- LEVEL 1 -->
+    <div id="level-1" class="screen">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <input type="text" id="l1-input" class="stealth-input" autocomplete="off" autofocus>
+            <button class="btn" onclick="checkLevel1()" style="margin-top: 20px;">Submit</button>
+        </div>
+    </div>
+
+    <!-- LEVEL 2 -->
+    <div id="level-2" class="screen">
+        <div class="puzzle-text">
+            -.-. . -. - . .-. / .--. .- - .... ... / -... .- -.-. -.- / --- .-. / -.-. --- -- .--. .-.. . -..- / .- / ... - .-. ..- -.-. - ..- .-. . / .--. .- - .... ... / --- .-. / .-. --- ..- - . / --- ..- - / -.-. --- -- .--. .-.. . -..- / --- .-. / .-- .. -. -.. .. -. --. / ... .. -. --. .-.. . / -.-. --- -. - .. -. ..- --- ..- ... / -. . - .-- --- .-. -.- / -.-. --- -- .--. .-.. . -..- / .--. .- ... ... .- --. . ... / .-.. . .- -.. .. -. --. / .- / .- / --- ..-. / -.-. --- -- .--. .-.. . -..- / .--. .- - .... ... / - --- / - .... .
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <input type="text" id="l2-input" class="stealth-input" autocomplete="off">
+            <button class="btn" onclick="checkLevel2()" style="margin-top: 20px;">Submit</button>
+        </div>
+    </div>
+
+    <!-- LEVEL 3 -->
+    <div id="level-3" class="screen">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <!-- Placeholder attribute functions as the canvas for the typing text -->
+            <input type="text" id="l3-input" class="stealth-input" autocomplete="off">
+            <button class="btn" onclick="checkLevel3()" style="margin-top: 20px;">Submit</button>
+        </div>
+    </div>
+
+    <!-- LEVEL 4 (Placeholder) -->
+    <div id="level-4" class="screen">
+        <h2>LEVEL 4</h2>
+        <p>You have proven your patience. You are now on level four.</p>
+        <button class="btn" onclick="resetGame()">Reset Game Data</button>
+    </div>
 
     <script>
-        // 1. Immediately launch the pristine blank puzzle workspace
-        const puzzleWindow = window.open('about:blank', '_blank');
+        const morseSequence = ["-", "...", ".", "--.", "..", "-.", "-.", "..", "-.", "--."];
+        let morseInterval = null;
+        let typingInterval = null;
 
-        // 2. Build the Morse interface environment to inject into the blank document
-        const secretContent = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>...</title>
-            <style>
-                body { margin: 0; padding: 0; background-color: #000000; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; font-family: sans-serif; }
-                .input-container { text-align: center; }
-                .puzzle-input { background-color: #000000; color: #ffffff; border: 2px solid #ffffff; padding: 15px 25px; font-size: 20px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; outline: none; border-radius: 4px; width: 300px; text-align: center; }
-            </style>
-        </head>
-        <body>
-            <div class="input-container">
-                <input type="text" id="puzzleBox" class="puzzle-input" placeholder="..." autofocus autocomplete="off">
-            </div>
-            <script>
-                // Flash Morse sequence for B E G I N N I N G inside the about:blank tab title
-                const seq = ["-...", ".", "--.", "..", "-.", "-.", "..", "-.", "--."];
-                seq.forEach((char, idx) => {
-                    setTimeout(() => { document.title = char; }, idx * 1000);
-                });
-                
-                // When finished, the tab name goes completely blank using a hidden Unicode marker
-                setTimeout(() => { document.title = "\\u200e"; }, seq.length * 1000);
+        // On page load, manage saved progress states
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedScreen = localStorage.getItem('puzzleProgress');
+            if (savedScreen && savedScreen !== 'rules-screen') {
+                showScreen(savedScreen);
+            } else {
+                showScreen('main-screen');
+            }
+        });
 
-                // Input authentication layer
-                document.getElementById('puzzleBox').addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        const val = this.value.trim().toUpperCase();
-                        if (val === "BEGINNING") {
-                            alert("Good Luck.");
-                            // Next stage routing will go here
-                        } else {
-                            this.value = ""; // Clear on failure
-                        }
-                    }
-                });
-            <\/script>
-        </body>
-        </html>
-        `;
+        // Core layout switcher
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
 
-        // 3. Inject the logic and assets straight into the window
-        puzzleWindow.document.open();
-        puzzleWindow.document.write(secretContent);
-        puzzleWindow.document.close();
+            // Reset any running puzzle intervals to keep performance clean
+            clearInterval(morseInterval);
+            clearInterval(typingInterval);
+            document.title = "The Puzzle";
 
-        // 4. Instantly kill this generator tab so only the blank one stays active
-        window.close();
-    </script>
+            if (screenId === 'level-1') {
+                startLevel1TabLoop();
+                document.getElementById('l1-input').focus();
+            } else if (screenId === 'level-2') {
+                document.getElementById('l2-input').focus();
+            } else if (screenId === 'level-3') {
+                startLevel3TypingLoop();
+                document.getElementById('l3-input').focus();
+            }
+        }
 
-</body>
-</html>
+        function startPuzzle() {
+            const savedScreen = localStorage.getItem('puzzleProgress');
+            if (savedScreen && savedScreen !== 'main-screen' && savedScreen !== 'rules-screen') {
+                showScreen(savedScreen);
+            } else {
+                goToLevel('level-1');
+            }
+        }
+
+        function goToLevel(levelId) {
+            localStorage.setItem('puzzleProgress', levelId);
+            showScreen(levelId);
+        }
+
+        function resetGame() {
+            localStorage.removeItem('puzzleProgress');
+            showScreen('main-screen');
+        }
+
+        // --- LEVEL 1 TAB SEQUENCE LOGIC ---
+        function startLevel1TabLoop() {
+            let index = 0;
+            morseInterval = setInterval(() => {
+                if (index < morseSequence.length) {
+                    document.title = morseSequence[index];
+                    index++;
+                } else {
+                    document.title = " ";
+                    clearInterval(morseInterval);
+                }
+            }, 1000);
+        }
+
+        // --- LEVEL 3 PLAY TYPING LOGIC ---
+        function startLevel3TypingLoop() {
+            const inputField = document.getElementById('l3-input');
+            inputField.value = ""; // Clear any remnant text
+            
+            // The binary content converted to readable chunks
+            const textToType = "01110000 01100001 01110100 01101001 01100101 01101110 01100011 01100101";
+            let charIndex = 0;
+
+            // Simulates the binary string rolling slowly out into the box
+            typingInterval = setInterval(() => {
+                if (charIndex < textToType.length) {
+                    inputField.value += textToType.charAt(charIndex);
+                    charIndex++;
+                } else {
+                    clearInterval(typingInterval);
+                }
+            }, 150); // Speed of typing out characters
+        }
+
+        // --- CRYPTOGRAPHIC VALIDATION FOR LEVEL 1 ---
+        async function checkLevel1() {
+            const inputField = document.getElementById('l1-input');
+            const input = inputField.value.trim().toLowerCase();
+            
+            const encoder = new TextEncoder();
+            const data = encoder.encode(input);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            const correctHash = "ca914cf1b96db84fa4f7902d131f4fc1b3bfa31ff991d9d96ca446d3e3725b82";
+
+            if (hashHex === correctHash) {
+                goToLevel('level-2');
+            } else {
+                inputField.value = "";
+                inputField.focus();
+            }
+        }
+
+        // --- CRYPTOGRAPHIC VALIDATION FOR LEVEL 2 ---
+        async function checkLevel2() {
+            const inputField = document.getElementById('l2-input');
+            const input = inputField.value.trim().toLowerCase();
+            
+            const encoder = new TextEncoder();
+            const data = encoder.encode(input);
+Use code with caution.
+const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+const hashArray = Array.from(new Uint8Array(hashBuffer));
+const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+const correctHash = "d9e15dc426dd9979ae01e9fe9d36f4ca7a14bc0fbfbf00b3b29d5576a43b818e";
+if (hashHex === correctHash) {
+goToLevel('level-3');
+} else {
+inputField.value = "";
+inputField.focus();
+}
+}
+// --- CRYPTOGRAPHIC VALIDATION FOR LEVEL 3 ---
+async function checkLevel3() {
+const inputField = document.getElementById('l3-input');
+const input = inputField.value.trim().toLowerCase();
+const encoder = new TextEncoder();
+const data = encoder.encode(input);
+const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+const hashArray = Array.from(new Uint8Array(hashBuffer));
+const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+// SHA-256 hash for "patience"
+const correctHash = "2b6942c74457639ba31a5c68991a0c4f820c74da5cf21fa0c598006f1da4f938";
+if (hashHex === correctHash) {
+goToLevel('level-4');
+} else {
+// Instantly wipe and restart typing loop if they fail
+inputField.value = "";
+startLevel3TypingLoop();
+inputField.focus();
+}
+}
+// Listen for Enter key submission globally depending on active screen
+document.addEventListener('keypress', (e) => {
+if (e.key === 'Enter') {
+if (document.getElementById('level-1').classList.contains('active')) {
+checkLevel1();
+} else if (document.getElementById('level-2').classList.contains('active')) {
+checkLevel2();
+} else if (document.getElementById('level-3').classList.contains('active')) {
+checkLevel3();
+}
+}
+});
+// Anti-Inspect Element Deterrents
+document.addEventListener('contextmenu', event => event.preventDefault());
+document.addEventListener('keydown', event => {
+if (
+event.key === 'F12' ||
+(event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'C' || event.key === 'J')) ||
+(event.ctrlKey && event.key === 'U')
+) {
+event.preventDefault();
+alert("Inspect element is not allowed.");
+}
+});
