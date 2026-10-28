@@ -17,7 +17,7 @@
             align-items: center;
             height: 100vh;
             overflow: hidden;
-            user-select: none; /* Prevents text highlighting */
+            user-select: none; /* Prevents text highlighting globally */
         }
 
         /* Screens container */
@@ -87,6 +87,21 @@
             word-break: break-word;
             max-width: 500px;
         }
+
+        /* Allows the hidden binary text to be selected and copied despite global body user-select: none */
+        .selectable-binary {
+            color: #000000;
+            background-color: #000000;
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            font-size: 16px;
+            margin-bottom: 25px;
+            word-break: break-word;
+            max-width: 500px;
+            min-height: 24px;
+        }
     </style>
 </head>
 <body>
@@ -130,6 +145,8 @@
 
     <!-- LEVEL 3 -->
     <div id="level-3" class="screen">
+        <!-- Hidden black binary container that populates after 30 seconds and can be copied -->
+        <div id="l3-binary" class="selectable-binary"></div>
         <div style="display: flex; flex-direction: column; align-items: center;">
             <input type="text" id="l3-input" class="stealth-input" autocomplete="off">
             <button class="btn" onclick="checkLevel3()" style="margin-top: 20px;">Submit</button>
@@ -146,7 +163,7 @@
     <script>
         const morseSequence = ["-", "...", ".", "--.", "..", "-.", "-.", "..", "-.", "--."];
         let morseInterval = null;
-        let level3Audio = null;
+        let binaryTimer = null;
 
         // On page load, manage saved progress states
         window.addEventListener('DOMContentLoaded', () => {
@@ -165,16 +182,10 @@
             });
             document.getElementById(screenId).classList.add('active');
 
-            // Reset running intervals
+            // Reset running intervals/timers
             clearInterval(morseInterval);
+            clearTimeout(binaryTimer);
             document.title = "The Puzzle";
-
-            // Stop Level 3 audio if navigating away from level-3
-            if (screenId !== 'level-3' && level3Audio) {
-                level3Audio.pause();
-                level3Audio.currentTime = 0;
-                level3Audio = null;
-            }
 
             if (screenId === 'level-1') {
                 startLevel1TabLoop();
@@ -184,13 +195,13 @@
                 document.getElementById('l2-input').focus();
             } else if (screenId === 'level-3') {
                 document.title = "PUZZLE 3";
-                document.getElementById('l3-input').value = "";
-                
-                // Play dontread.mp3 automatically
-                level3Audio = new Audio('dontread.mp3');
-                level3Audio.play().catch(err => {
-                    console.log("Audio autoplay was restricted by browser:", err);
-                });
+                const binaryDiv = document.getElementById('l3-binary');
+                binaryDiv.textContent = ""; // Clear initially
+
+                // 30-second timer to inject the invisible copyable binary text
+                binaryTimer = setTimeout(() => {
+                    binaryDiv.textContent = "01110000 01100001 01110100 01101001 01100101 01101110 01100011 01100101";
+                }, 30000); // 30000 ms = 30 seconds
 
                 document.getElementById('l3-input').focus();
             }
@@ -211,11 +222,7 @@
         }
 
         function resetGame() {
-            if (level3Audio) {
-                level3Audio.pause();
-                level3Audio.currentTime = 0;
-                level3Audio = null;
-            }
+            clearTimeout(binaryTimer);
             localStorage.removeItem('puzzleProgress');
             showScreen('main-screen');
         }
@@ -266,11 +273,6 @@
             const input = inputField.value.trim().toLowerCase();
             
             if (input === "patience") {
-                if (level3Audio) {
-                    level3Audio.pause();
-                    level3Audio.currentTime = 0;
-                    level3Audio = null;
-                }
                 goToLevel('level-4');
             } else {
                 inputField.value = "";
