@@ -77,7 +77,13 @@
             text-align: center; 
             outline: none; 
             width: 250px;
-            text-transform: uppercase; /* Forces uppercase display */
+            text-transform: uppercase;
+        }
+
+        /* Custom placeholder styling for dark mode compatibility */
+        .stealth-input::placeholder {
+            color: #444444;
+            font-size: 14px;
         }
 
         .puzzle-text {
@@ -88,19 +94,70 @@
             max-width: 500px;
         }
 
-        /* Allows the hidden binary text to be selected and copied despite global body user-select: none */
-        .selectable-binary {
-            color: #000000;
-            background-color: #000000;
+        /* Specific style for Level 1 stealth text that can be highlighted/copied */
+        .stealth-hint {
+            color: #0a0a0a;
             user-select: text;
             -webkit-user-select: text;
             -moz-user-select: text;
             -ms-user-select: text;
+            font-size: 18px;
+            margin-bottom: 30px;
+            letter-spacing: 1px;
+        }
+
+        /* Level 2 Eye Styling */
+        .eye-container {
+            width: 80px;
+            height: 40px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            cursor: pointer;
+            position: relative;
+            background-color: #000;
+            transition: border-color 0.3s;
+        }
+
+        .pupil {
+            width: 24px;
+            height: 24px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            position: absolute;
+            transition: background-color 0.3s;
+        }
+
+        .eye-closed {
+            height: 2px !important;
+            border-radius: 0 !important;
+            border-color: #555 !important;
+        }
+
+        .eye-closed .pupil {
+            display: none;
+        }
+
+        /* Crimson button for 10s wait event */
+        .red-btn {
+            background-color: #000000;
+            color: #ff0000;
+            border: 2px solid #ff0000;
+            padding: 10px 25px;
             font-size: 16px;
-            margin-bottom: 25px;
-            word-break: break-word;
-            max-width: 500px;
-            min-height: 24px;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 20px;
+            display: none;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .red-btn:hover {
+            background-color: #ff0000;
+            color: #000000;
         }
     </style>
 </head>
@@ -126,26 +183,28 @@
 
     <!-- LEVEL 1 -->
     <div id="level-1" class="screen">
+        <div class="stealth-hint">Project Architeuthis</div>
         <div style="display: flex; flex-direction: column; align-items: center;">
-            <input type="text" id="l1-input" class="stealth-input" autocomplete="off">
+            <input type="text" id="l1-input" class="stealth-input" placeholder="ENTER 4 DIGIT PIN" autocomplete="off">
             <button class="btn" onclick="checkLevel1()" style="margin-top: 20px;">Submit</button>
         </div>
     </div>
 
     <!-- LEVEL 2 -->
     <div id="level-2" class="screen">
-        <div class="puzzle-text">
-            -.-. . -. - . .-. / .--. .- - .... ... / -... .- -.-. -.- / --- .-. / -.-. --- -- .--. .-.. . -..- / .- / ... - .-. ..- -.-. - ..- .-. . / .--. .- - .... ... / --- .-. / .-. --- ..- - . / --- ..- - / -.-. --- -- .--. .-.. . -..- / --- .-. / .-- .. -. -.. .. -. --. / ... .. -. --. .-.. . / -.-. --- -. - .. -. ..- --- --. ... / -. . - .-- --- .-. -.- / -.-. --- -- .--. .-.. . -..- / .--. .- ... ... .- --. . ... / .-.. . .- -.. .. -. --. / .- / .- / --- ..-. / -.-. --- -- .--. .-.. . -..- / .--. .- - .... ... / - --- / - .... .
+        <div id="puzzle-eye" class="eye-container" onclick="handleEyeClick()">
+            <div id="puzzle-pupil" class="pupil"></div>
         </div>
         <div style="display: flex; flex-direction: column; align-items: center;">
-            <input type="text" id="l2-input" class="stealth-input" autocomplete="off">
+            <input type="text" id="l2-input" class="stealth-input" autocomplete="off" oninput="checkLevel2Input()">
             <button class="btn" onclick="checkLevel2()" style="margin-top: 20px;">Submit</button>
+            <button id="l2-red-btn" class="red-btn" onclick="goToLevel('level-3')">PROCEED</button>
         </div>
     </div>
 
     <!-- LEVEL 3 -->
     <div id="level-3" class="screen">
-        <div id="l3-binary" class="selectable-binary"></div>
+        <div class="puzzle-text">[ Insert Level 3 Clue Here ]</div>
         <div style="display: flex; flex-direction: column; align-items: center;">
             <input type="text" id="l3-input" class="stealth-input" autocomplete="off">
             <button class="btn" onclick="checkLevel3()" style="margin-top: 20px;">Submit</button>
@@ -155,26 +214,14 @@
     <!-- LEVEL 4 (Placeholder) -->
     <div id="level-4" class="screen">
         <h2>LEVEL 4</h2>
-        <p>You have proven your patience. You are now on level four.</p>
+        <p>You have made it through.</p>
         <button class="btn" onclick="resetGame()">Reset Game Data</button>
     </div>
 
     <script>
-        // Morse code for B-E-G-I-N-N-I-N-G
-        const morseSequence = [
-            "-...", // B
-            ".",    // E
-            "--.",  // G
-            "..",   // I
-            "-.",   // N
-            "-.",   // N
-            "..",   // I
-            "-.",   // N
-            "--."   // G
-        ];
-        
-        let morseInterval = null;
-        let binaryTimer = null;
+        let isEyeClosed = false;
+        let isEyeRed = false;
+        let eyeWaitTimer = null;
 
         // On page load, manage saved progress states
         window.addEventListener('DOMContentLoaded', () => {
@@ -192,28 +239,26 @@
                 screen.classList.remove('active');
             });
             document.getElementById(screenId).classList.add('active');
-
-            // Reset running intervals/timers
-            clearInterval(morseInterval);
-            clearTimeout(binaryTimer);
             document.title = "The Puzzle";
 
+            // Clear Level 2 timers/states when navigating away
+            clearTimeout(eyeWaitTimer);
+
             if (screenId === 'level-1') {
-                startLevel1TabLoop();
+                document.title = "PUZZLE 1";
                 document.getElementById('l1-input').focus();
             } else if (screenId === 'level-2') {
                 document.title = "PUZZLE 2";
+                isEyeClosed = false;
+                isEyeRed = false;
+                document.getElementById('puzzle-eye').classList.remove('eye-closed');
+                document.getElementById('puzzle-eye').style.borderColor = "#ffffff";
+                document.getElementById('puzzle-pupil').style.backgroundColor = "#ffffff";
+                document.getElementById('l2-red-btn').style.display = "none";
+                document.getElementById('l2-input').value = "";
                 document.getElementById('l2-input').focus();
             } else if (screenId === 'level-3') {
                 document.title = "PUZZLE 3";
-                const binaryDiv = document.getElementById('l3-binary');
-                binaryDiv.textContent = ""; // Clear initially
-
-                // 30-second timer to inject the invisible copyable binary text
-                binaryTimer = setTimeout(() => {
-                    binaryDiv.textContent = "01110000 01100001 01110100 01101001 01100101 01101110 01100011 01100101";
-                }, 30000); // 30 seconds
-
                 document.getElementById('l3-input').focus();
             }
         }
@@ -233,23 +278,60 @@
         }
 
         function resetGame() {
-            clearTimeout(binaryTimer);
             localStorage.removeItem('puzzleProgress');
             showScreen('main-screen');
         }
 
-        // --- LEVEL 1 TAB SEQUENCE LOGIC ---
-        function startLevel1TabLoop() {
-            let index = 0;
-            morseInterval = setInterval(() => {
-                if (index < morseSequence.length) {
-                    document.title = morseSequence[index];
-                    index++;
-                } else {
-                    document.title = "PUZZLE 1";
-                    clearInterval(morseInterval);
-                }
-            }, 1000);
+        // --- LEVEL 2 CURSOR TRACKING & EYE MECHANICS ---
+        document.addEventListener('mousemove', (e) => {
+            if (!document.getElementById('level-2').classList.contains('active')) return;
+            if (isEyeClosed || isEyeRed) return; // Stop tracking if closed or red
+
+            const eye = document.getElementById('puzzle-eye');
+            const pupil = document.getElementById('puzzle-pupil');
+            const rect = eye.getBoundingClientRect();
+            const eyeCenterX = rect.left + rect.width / 2;
+            const eyeCenterY = rect.top + rect.height / 2;
+
+            const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
+            const distance = Math.min(12, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY) / 4);
+
+            const pupilX = Math.cos(angle) * distance;
+            const pupilY = Math.sin(angle) * distance;
+
+            pupil.style.transform = `translate(${pupilX}px, ${pupilY}px)`;
+        });
+
+        function handleEyeClick() {
+            if (isEyeRed) {
+                resetGame();
+                return;
+            }
+            if (!isEyeClosed) {
+                isEyeClosed = true;
+                const eye = document.getElementById('puzzle-eye');
+                eye.classList.add('eye-closed');
+            }
+        }
+
+        function checkLevel2Input() {
+            const inputVal = document.getElementById('l2-input').value.trim().toLowerCase();
+            if (inputVal === "eye" && !isEyeRed) {
+                isEyeRed = true;
+                const eye = document.getElementById('puzzle-eye');
+                const pupil = document.getElementById('puzzle-pupil');
+                eye.style.borderColor = "#ff0000";
+                pupil.style.backgroundColor = "#ff0000";
+                pupil.style.transform = "translate(0px, 0px)"; // Center pupil
+
+                // Start 10-second timer to summon red button
+                clearTimeout(eyeWaitTimer);
+                eyeWaitTimer = setTimeout(() => {
+                    if (isEyeRed && document.getElementById('level-2').classList.contains('active')) {
+                        document.getElementById('l2-red-btn').style.display = "inline-block";
+                    }
+                }, 10000);
+            }
         }
 
         // --- VALIDATION FOR LEVEL 1 ---
@@ -257,7 +339,7 @@
             const inputField = document.getElementById('l1-input');
             const input = inputField.value.trim().toLowerCase();
             
-            if (input === "beginning") {
+            if (input === "3301") {
                 goToLevel('level-2');
             } else {
                 inputField.value = "";
@@ -265,12 +347,13 @@
             }
         }
 
-        // --- VALIDATION FOR LEVEL 2 ---
+        // --- VALIDATION FOR LEVEL 2 SUBMIT ---
         function checkLevel2() {
             const inputField = document.getElementById('l2-input');
             const input = inputField.value.trim().toLowerCase();
             
-            if (input === "labyrinth") {
+            // Standard submit fallback if they type an intended answer
+            if (input === "answer2") {
                 goToLevel('level-3');
             } else {
                 inputField.value = "";
@@ -283,7 +366,7 @@
             const inputField = document.getElementById('l3-input');
             const input = inputField.value.trim().toLowerCase();
             
-            if (input === "patience") {
+            if (input === "answer3") {
                 goToLevel('level-4');
             } else {
                 inputField.value = "";
