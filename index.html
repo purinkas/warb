@@ -145,7 +145,6 @@
 
     <!-- LEVEL 3 -->
     <div id="level-3" class="screen">
-        <!-- Hidden black binary container that populates after 30 seconds and can be copied -->
         <div id="l3-binary" class="selectable-binary"></div>
         <div style="display: flex; flex-direction: column; align-items: center;">
             <input type="text" id="l3-input" class="stealth-input" autocomplete="off">
@@ -161,7 +160,19 @@
     </div>
 
     <script>
-        const morseSequence = ["-", "...", ".", "--.", "..", "-.", "-.", "..", "-.", "--."];
+        // Morse code for B-E-G-I-N-N-I-N-G
+        const morseSequence = [
+            "-...", // B
+            ".",    // E
+            "--.",  // G
+            "..",   // I
+            "-.",   // N
+            "-.",   // N
+            "..",   // I
+            "-.",   // N
+            "--."   // G
+        ];
+        
         let morseInterval = null;
         let binaryTimer = null;
 
@@ -201,7 +212,7 @@
                 // 30-second timer to inject the invisible copyable binary text
                 binaryTimer = setTimeout(() => {
                     binaryDiv.textContent = "01110000 01100001 01110100 01101001 01100101 01101110 01100011 01100101";
-                }, 30000); // 30000 ms = 30 seconds
+                }, 30000); // 30 seconds
 
                 document.getElementById('l3-input').focus();
             }
