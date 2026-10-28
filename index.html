@@ -234,88 +234,40 @@
             }, 150);
         }
 
-        // --- CRYPTOGRAPHIC VALIDATION FOR LEVEL 1 ---
-        async function checkLevel1() {
+        // --- VALIDATION FOR LEVEL 1 ---
+        function checkLevel1() {
             const inputField = document.getElementById('l1-input');
             const input = inputField.value.trim().toLowerCase();
             
-            try {
-                const encoder = new TextEncoder();
-                const data = encoder.encode(input);
-                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-                const correctHash = "55044c330f5d5236f71d5b74052f53d26a270dc88b75e119430c74900a89d71c";
-
-                if (hashHex === correctHash) {
-                    goToLevel('level-2');
-                } else {
-                    inputField.value = "";
-                    inputField.focus();
-                }
-            } catch (err) {
-                console.error("Crypto error:", err);
-                // Fallback direct check if crypto API is restricted locally
-                if (input === "beginning") {
-                    goToLevel('level-2');
-                } else {
-                    inputField.value = "";
-                    inputField.focus();
-                }
-            }
-        }
-
-        // --- CRYPTOGRAPHIC VALIDATION FOR LEVEL 2 ---
-        async function checkLevel2() {
-            const inputField = document.getElementById('l2-input');
-            const input = inputField.value.trim().toLowerCase();
-            
-            try {
-                const encoder = new TextEncoder();
-                const data = encoder.encode(input);
-                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                
-                const correctHash = "d9e15dc426dd9979ae01e9fe9d36f4ca7a14bc0fbfbf00b3b29d5576a43b818e";
-
-                if (hashHex === correctHash) {
-                    goToLevel('level-3');
-                } else {
-                    inputField.value = "";
-                    inputField.focus();
-                }
-            } catch (err) {
-                console.error("Crypto error:", err);
+            if (input === "beginning") {
+                goToLevel('level-2');
+            } else {
                 inputField.value = "";
                 inputField.focus();
             }
         }
 
-        // --- CRYPTOGRAPHIC VALIDATION FOR LEVEL 3 ---
-        async function checkLevel3() {
+        // --- VALIDATION FOR LEVEL 2 ---
+        function checkLevel2() {
+            const inputField = document.getElementById('l2-input');
+            const input = inputField.value.trim().toLowerCase();
+            
+            if (input === "labyrinth") {
+                goToLevel('level-3');
+            } else {
+                inputField.value = "";
+                inputField.focus();
+            }
+        }
+
+        // --- VALIDATION FOR LEVEL 3 ---
+        function checkLevel3() {
             const inputField = document.getElementById('l3-input');
             const input = inputField.value.trim().toLowerCase();
             
-            try {
-                const encoder = new TextEncoder();
-                const data = encoder.encode(input);
-                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                
-                const correctHash = "2b6942c74457639ba31a5c68991a0c4f820c74da5cf21fa0c598006f1da4f938";
-
-                if (hashHex === correctHash) {
-                    goToLevel('level-4');
-                } else {
-                    inputField.value = "";
-                    startLevel3TypingLoop();
-                    inputField.focus();
-                }
-            } catch (err) {
-                console.error("Crypto error:", err);
+            if (input === "patience") {
+                goToLevel('level-4');
+            } else {
                 inputField.value = "";
                 startLevel3TypingLoop();
                 inputField.focus();
