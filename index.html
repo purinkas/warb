@@ -200,9 +200,42 @@
             letter-spacing: 2px;
             transition: color 0.2s;
         }
+
+        /* Lockout Screen Styling */
+        #lockout-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000000;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ff0000;
+            font-size: 24px;
+            letter-spacing: 3px;
+        }
+
+        .lock-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
+
+    <!-- LOCKOUT SCREEN (1 HOUR BAN) -->
+    <div id="lockout-screen">
+        <div class="lock-icon">🔒</div>
+        <div>ACCESS DENIED</div>
+        <div id="lockout-timer" style="font-size: 16px; margin-top: 15px; color: #888;"></div>
+    </div>
+
+    <!-- TOP COPIED TOAST NOTIFICATION -->
+    <div id="copied-toast" class="copied-toast" style="position:fixed; top:15px; left:50%; transform:translateX(-50%); color:#444; font-size:12px; letter-spacing:1px; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:1000;">Copied.</div>
 
     <!-- MAIN MENU SCREEN -->
     <div id="main-screen" class="screen">
@@ -226,7 +259,7 @@
     <div id="level-1" class="screen">
         <div class="stealth-hint">Project Architeuthis</div>
         <div class="cicada-container">
-            <div class="cicada-icon">🪲</div>
+            <div class="cicada-icon">𓆦</div>
             <button class="audio-btn" onclick="playLevel1Audio()">▶ Play Audio</button>
             <audio id="l1-audio" src="audio.mp3" preload="auto"></audio>
         </div>
@@ -270,11 +303,12 @@
         <div id="l4-timer" class="l4-timer-display">5</div>
     </div>
 
-    <!-- LEVEL 5 (Victory / Final Screen) -->
-    <div id="level-5" class="screen">
-        <h2>VICTORY</h2>
-        <p>You have outsmarted the eye.</p>
-        <button class="btn" onclick="resetGame()">Reset Game Data</button>
+    <!-- LEVEL 6 (Final 10-Minute Trial) -->
+    <div id="level-6" class="screen">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <input type="text" class="stealth-input" autocomplete="off">
+            <div id="l6-timer" style="font-size: 24px; margin-top: 15px; letter-spacing: 2px;">10:00</div>
+        </div>
     </div>
 
     <script>
@@ -286,14 +320,22 @@
         let survivalTimer = null;
         let startTime = 0;
 
-        // Level 4 specific variables
+        // Level 4 variables
         let l4Countdown = 5;
         let l4TimerInterval = null;
         let l4TensionInterval = null;
         let l4IsActive = false;
 
-        // On page load, manage saved progress states
+        // Level 6 (Final Trial) variables
+        let l6Active = false;
+        let l6TimerInterval = null;
+        let l6TensionInterval = null;
+        let l6SecondsLeft = 600; // 10 minutes
+
+        // On page load, check lockout cookie/flag and progress states
         window.addEventListener('DOMContentLoaded', () => {
+            checkLockoutStatus();
+
             const savedScreen = localStorage.getItem('puzzleProgress');
             if (savedScreen && savedScreen !== 'rules-screen') {
                 showScreen(savedScreen);
@@ -301,6 +343,44 @@
                 showScreen('main-screen');
             }
         });
+
+        // --- LOCKOUT & BAN SYSTEM ---
+        function checkLockoutStatus() {
+            const lockoutUntil = localStorage.getItem('puzzleLockoutUntil');
+            if (lockoutUntil) {
+                const now = Date.now();
+                if (now < parseInt(lockoutUntil)) {
+                    showLockoutScreen(parseInt(lockoutUntil));
+                } else {
+                    localStorage.removeItem('puzzleLockoutUntil');
+                }
+            }
+        }
+
+        function triggerLockout() {
+            localStorage.clear();
+            const lockoutTime = Date.now() + (60 * 60 * 1000); // 1 hour from now
+            localStorage.setItem('puzzleLockoutUntil', lockoutTime);
+            showLockoutScreen(lockoutTime);
+        }
+
+        function showLockoutScreen(targetTime) {
+            document.getElementById('lockout-screen').style.display = "flex";
+            updateLockoutCountdown(targetTime);
+            setInterval(() => updateLockoutCountdown(targetTime), 1000);
+        }
+
+        function updateLockoutCountdown(targetTime) {
+            const remaining = Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
+            const mins = Math.floor(remaining / 60);
+            const secs = remaining % 60;
+            document.getElementById('lockout-timer').textContent = `TIME UNTIL ACCESS: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            if (remaining <= 0) {
+                localStorage.removeItem('puzzleLockoutUntil');
+                document.getElementById('lockout-screen').style.display = "none";
+                resetGame();
+            }
+        }
 
         // Core layout switcher
         function showScreen(screenId) {
@@ -310,9 +390,9 @@
             document.getElementById(screenId).classList.add('active');
             document.title = "The Puzzle";
 
-            // Clear Level 2 & Level 4 states when navigating away
             resetRedEye();
             stopLevel4();
+            stopLevel6();
 
             if (screenId === 'level-1') {
                 document.title = "PUZZLE 1";
@@ -339,6 +419,11 @@
             } else if (screenId === 'level-4') {
                 document.title = "PUZZLE 4";
                 startLevel4();
+            } else if (screenId === 'level-5') {
+                // Change title to Customer Service per requirement
+                document.title = "Customer Service";
+            } else if (screenId === 'level-6') {
+                startLevel6();
             }
         }
 
@@ -354,6 +439,7 @@
         function goToLevel(levelId) {
             resetRedEye();
             stopLevel4();
+            stopLevel6();
             localStorage.setItem('puzzleProgress', levelId);
             showScreen(levelId);
         }
@@ -361,6 +447,7 @@
         function resetGame() {
             resetRedEye();
             stopLevel4();
+            stopLevel6();
             localStorage.removeItem('puzzleProgress');
             showScreen('main-screen');
         }
@@ -370,9 +457,7 @@
             const audio = document.getElementById('l1-audio');
             if (audio) {
                 audio.currentTime = 0;
-                audio.play().catch(err => {
-                    console.log("Audio playback prevented or missing file:", err);
-                });
+                audio.play().catch(() => {});
             }
         }
 
@@ -391,22 +476,20 @@
 
         // --- LEVEL 2 CURSOR TRACKING & EYE MECHANICS ---
         document.addEventListener('mousemove', (e) => {
-            if (!document.getElementById('level-2').classList.contains('active')) return;
-            if (isEyeClosed || isEyeRed) return;
+            if (document.getElementById('level-2').classList.contains('active')) {
+                if (!isEyeClosed && !isEyeRed) {
+                    const eye = document.getElementById('puzzle-eye');
+                    const pupil = document.getElementById('puzzle-pupil');
+                    const rect = eye.getBoundingClientRect();
+                    const eyeCenterX = rect.left + rect.width / 2;
+                    const eyeCenterY = rect.top + rect.height / 2;
 
-            const eye = document.getElementById('puzzle-eye');
-            const pupil = document.getElementById('puzzle-pupil');
-            const rect = eye.getBoundingClientRect();
-            const eyeCenterX = rect.left + rect.width / 2;
-            const eyeCenterY = rect.top + rect.height / 2;
+                    const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
+                    const distance = Math.min(12, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY) / 4);
 
-            const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
-            const distance = Math.min(12, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY) / 4);
-
-            const pupilX = Math.cos(angle) * distance;
-            const pupilY = Math.sin(angle) * distance;
-
-            pupil.style.transform = `translate(${pupilX}px, ${pupilY}px)`;
+                    pupil.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
+                }
+            }
         });
 
         function handleEyeClick() {
@@ -623,7 +706,8 @@
 
                 if (document.hidden || document.visibilityState === 'hidden') {
                     stopLevel4();
-                    goToLevel('level-5');
+                    // Instantly send to Level 6 (10-minute trial) per requirement
+                    goToLevel('level-6');
                 } else {
                     stopLevel4();
                     window.close();
@@ -636,7 +720,7 @@
             if (l4IsActive && (document.hidden || document.visibilityState === 'hidden')) {
                 if (l4Countdown <= 0) {
                     stopLevel4();
-                    goToLevel('level-5');
+                    goToLevel('level-6');
                 }
             }
         });
@@ -644,7 +728,7 @@
         window.addEventListener('blur', () => {
             if (l4IsActive && l4Countdown <= 0) {
                 stopLevel4();
-                goToLevel('level-5');
+                goToLevel('level-6');
             }
         });
 
@@ -655,6 +739,77 @@
             document.body.style.backgroundColor = "#000000";
             const l4Screen = document.getElementById('level-4');
             if (l4Screen) l4Screen.style.transform = "translate(0px, 0px)";
+        }
+
+        // --- LEVEL 6 (10-MINUTE FINAL TRIAL) MECHANICS ---
+        function startLevel6() {
+            l6Active = true;
+            l6SecondsLeft = 600;
+            const timerEl = document.getElementById('l6-timer');
+            timerEl.textContent = "10:00";
+            timerEl.style.color = "#ffffff";
+            document.body.style.backgroundColor = "#000000";
+
+            let l6StartTime = Date.now();
+
+            clearInterval(l6TensionInterval);
+            l6TensionInterval = setInterval(() => {
+                if (!l6Active) return;
+                const elapsed = (Date.now() - l6StartTime) / 1000;
+                const progress = Math.min(elapsed / 600, 1);
+
+                const redIntensity = Math.floor(progress * 70);
+                document.body.style.backgroundColor = `rgb(${redIntensity}, 0, 0)`;
+
+                const tintVal = Math.floor(255 - (progress * 180));
+                const tintHex = `rgb(255, ${tintVal}, ${tintVal})`;
+                timerEl.style.color = tintHex;
+
+                const shakeX = (Math.random() - 0.5) * progress * 14;
+                const shakeY = (Math.random() - 0.5) * progress * 14;
+                document.getElementById('level-6').style.transform = `translate(${shakeX}px, ${shakeY}px)`;
+            }, 100);
+
+            clearInterval(l6TimerInterval);
+            l6TimerInterval = setInterval(() => {
+                if (!l6Active) return;
+                
+                const isOffTab = document.hidden || document.visibilityState === 'hidden';
+                const tickRate = isOffTab ? 1.25 : 1.0;
+
+                l6SecondsLeft -= tickRate;
+                if (l6SecondsLeft > 0) {
+                    const totalSec = Math.ceil(l6SecondsLeft);
+                    const mins = Math.floor(totalSec / 60);
+                    const secs = totalSec % 60;
+                    const timeStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                    timerEl.textContent = timeStr;
+                    document.title = timeStr; // Dynamic timer in tab title
+                } else {
+                    timerEl.textContent = "0:00";
+                    document.title = "0:00";
+                    clearInterval(l6TimerInterval);
+                    clearInterval(l6TensionInterval);
+                    triggerLockout();
+                    window.close();
+                    window.location.href = "about:blank";
+                }
+            }, 1000);
+        }
+
+        window.addEventListener('beforeunload', (e) => {
+            if (l6Active) {
+                triggerLockout();
+            }
+        });
+
+        function stopLevel6() {
+            l6Active = false;
+            clearInterval(l6TimerInterval);
+            clearInterval(l6TensionInterval);
+            document.body.style.backgroundColor = "#000000";
+            const l6Screen = document.getElementById('level-6');
+            if (l6Screen) l6Screen.style.transform = "translate(0px, 0px)";
         }
 
         // --- VALIDATION FOR LEVEL 2 SUBMIT ---
@@ -676,7 +831,8 @@
             const inputField = document.getElementById('l3-input');
             const input = inputField.value.trim().toLowerCase();
             
-            if (input === "aaiietriti") {
+            // Updated answer for Puzzle 3
+            if (input === "aaiigtriti") {
                 goToLevel('level-4');
             } else {
                 inputField.value = "";
@@ -684,11 +840,21 @@
             }
         }
 
-        // Global key listeners (Enter to submit, Shift + R to restart)
+        // Global key listeners (Shift + R blocked in Level 6, Playtester Shift + U backdoor)
         document.addEventListener('keydown', (e) => {
+            if (e.shiftKey && (e.key === 'U' || e.key === 'u')) {
+                e.preventDefault();
+                localStorage.removeItem('puzzleLockoutUntil');
+                document.getElementById('lockout-screen').style.display = "none";
+                resetGame();
+                return;
+            }
+
             if (e.shiftKey && (e.key === 'R' || e.key === 'r')) {
                 e.preventDefault();
-                resetGame();
+                if (!l6Active) {
+                    resetGame();
+                }
                 return;
             }
 
