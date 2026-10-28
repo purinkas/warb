@@ -306,9 +306,16 @@
     <!-- LEVEL 6 (Final 10-Minute Trial) -->
     <div id="level-6" class="screen">
         <div style="display: flex; flex-direction: column; align-items: center;">
-            <input type="text" class="stealth-input" autocomplete="off">
+            <input type="text" id="l6-input" class="stealth-input" autocomplete="off" style="text-transform: none;">
             <div id="l6-timer" style="font-size: 24px; margin-top: 15px; letter-spacing: 2px;">10:00</div>
         </div>
+    </div>
+
+    <!-- PLACEHOLDER PAGE -->
+    <div id="placeholder-screen" class="screen">
+        <h2>PLACEHOLDER</h2>
+        <p>Coming Soon...</p>
+        <button class="btn" onclick="resetGame()">Restart</button>
     </div>
 
     <script>
@@ -420,10 +427,13 @@
                 document.title = "PUZZLE 4";
                 startLevel4();
             } else if (screenId === 'level-5') {
-                // Change title to Customer Service per requirement
                 document.title = "Customer Service";
             } else if (screenId === 'level-6') {
+                document.getElementById('l6-input').value = "";
+                document.getElementById('l6-input').focus();
                 startLevel6();
+            } else if (screenId === 'placeholder-screen') {
+                document.title = "PlaceHolder";
             }
         }
 
@@ -706,7 +716,6 @@
 
                 if (document.hidden || document.visibilityState === 'hidden') {
                     stopLevel4();
-                    // Instantly send to Level 6 (10-minute trial) per requirement
                     goToLevel('level-6');
                 } else {
                     stopLevel4();
@@ -784,7 +793,7 @@
                     const secs = totalSec % 60;
                     const timeStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
                     timerEl.textContent = timeStr;
-                    document.title = timeStr; // Dynamic timer in tab title
+                    document.title = timeStr;
                 } else {
                     timerEl.textContent = "0:00";
                     document.title = "0:00";
@@ -831,7 +840,6 @@
             const inputField = document.getElementById('l3-input');
             const input = inputField.value.trim().toLowerCase();
             
-            // Updated answer for Puzzle 3
             if (input === "aaiigtriti") {
                 goToLevel('level-4');
             } else {
@@ -840,8 +848,18 @@
             }
         }
 
-        // Global key listeners (Shift + R blocked in Level 6, Playtester Shift + U backdoor)
+        // --- GLOBAL KEY LISTENERS & BACKDOORS ---
         document.addEventListener('keydown', (e) => {
+            // Shift + F: Complete data & progress wipe (including lockout & skip flags)
+            if (e.shiftKey && (e.key === 'F' || e.key === 'f')) {
+                e.preventDefault();
+                localStorage.clear();
+                document.getElementById('lockout-screen').style.display = "none";
+                resetGame();
+                return;
+            }
+
+            // Playtester unlock backdoor
             if (e.shiftKey && (e.key === 'U' || e.key === 'u')) {
                 e.preventDefault();
                 localStorage.removeItem('puzzleLockoutUntil');
@@ -850,6 +868,7 @@
                 return;
             }
 
+            // Shift + R reset block during Level 6 trial
             if (e.shiftKey && (e.key === 'R' || e.key === 'r')) {
                 e.preventDefault();
                 if (!l6Active) {
@@ -868,6 +887,22 @@
                     checkLevel2();
                 } else if (document.getElementById('level-3').classList.contains('active')) {
                     checkLevel3();
+                } else if (document.getElementById('level-6').classList.contains('active')) {
+                    // Level 6 enter press logic
+                    e.preventDefault();
+                    const inputField = document.getElementById('l6-input');
+                    const val = inputField.value.trim();
+
+                    if (val.toLowerCase() === "great perfection of wisdom") {
+                        // Correct answer -> Placeholder page
+                        stopLevel6();
+                        goToLevel('placeholder-screen');
+                    } else {
+                        // Incorrect answer -> Penalize 2 minutes (120 seconds) & clear box
+                        l6SecondsLeft = Math.max(0, l6SecondsLeft - 120);
+                        inputField.value = "";
+                        inputField.focus();
+                    }
                 }
             }
         });
