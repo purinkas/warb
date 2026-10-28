@@ -81,19 +81,10 @@
             text-transform: uppercase;
         }
 
-        /* Level 2 input special crimson text color */
-        #l2-input {
-            color: #ff1a1a;
-        }
-
         /* Custom placeholder styling for dark mode compatibility */
         .stealth-input::placeholder {
             color: #444444;
             font-size: 14px;
-        }
-
-        #l2-input::placeholder {
-            color: #550000;
         }
 
         .puzzle-text {
@@ -107,7 +98,7 @@
 
         /* Specific style for Level 1 stealth text that can be highlighted/copied */
         .stealth-hint {
-            color: #0a0a0a;
+            color: #030303;
             user-select: text;
             -webkit-user-select: text;
             -moz-user-select: text;
@@ -197,7 +188,6 @@
         <div class="stealth-hint">Project Architeuthis</div>
         <div style="display: flex; flex-direction: column; align-items: center;">
             <input type="text" id="l1-input" class="stealth-input" placeholder="ENTER 4 DIGIT PIN" maxlength="4" oninput="validateLevel1Input(this)" autocomplete="off">
-            <button class="btn" onclick="checkLevel1()" style="margin-top: 20px;">Submit</button>
         </div>
     </div>
 
@@ -207,7 +197,7 @@
             <div id="puzzle-pupil" class="pupil"></div>
         </div>
         <div style="display: flex; flex-direction: column; align-items: center;">
-            <input type="text" id="l2-input" class="stealth-input" placeholder="EYESPY" autocomplete="off" oninput="checkLevel2Input()">
+            <input type="text" id="l2-input" class="stealth-input" placeholder="" autocomplete="off" oninput="checkLevel2Input()">
             <button id="l2-submit-btn" class="btn" onclick="checkLevel2()" style="margin-top: 20px;">Submit</button>
             <button id="l2-red-btn" class="red-btn" onclick="goToLevel('level-3')">PROCEED</button>
         </div>
@@ -267,15 +257,22 @@
 
             if (screenId === 'level-1') {
                 document.title = "PUZZLE 1";
+                document.getElementById('l1-input').value = "";
                 document.getElementById('l1-input').focus();
             } else if (screenId === 'level-2') {
                 document.title = "PUZZLE 2";
                 isEyeClosed = false;
                 document.getElementById('puzzle-eye').classList.remove('eye-closed');
                 document.getElementById('l2-submit-btn').style.display = "inline-block";
+                document.getElementById('l2-submit-btn').style.borderColor = "#ffffff";
+                document.getElementById('l2-submit-btn').style.color = "#ffffff";
                 document.getElementById('l2-red-btn').style.display = "none";
-                document.getElementById('l2-input').value = "";
-                document.getElementById('l2-input').focus();
+                const inputField = document.getElementById('l2-input');
+                inputField.value = "";
+                inputField.style.color = "#ffffff";
+                inputField.style.borderColor = "#ffffff";
+                inputField.removeAttribute('readonly');
+                inputField.focus();
             } else if (screenId === 'level-3') {
                 document.title = "PUZZLE 3";
                 document.getElementById('l3-input').focus();
@@ -302,9 +299,18 @@
             showScreen('main-screen');
         }
 
-        // --- LEVEL 1 NUMBER FILTER ---
+        // --- LEVEL 1 AUTO-SUBMIT LOGIC ---
         function validateLevel1Input(inputField) {
             inputField.value = inputField.value.replace(/[^0-9]/g, '');
+
+            if (inputField.value.length === 4) {
+                if (inputField.value === "3301") {
+                    goToLevel('level-2');
+                } else {
+                    inputField.value = "";
+                    inputField.focus();
+                }
+            }
         }
 
         // --- LEVEL 2 CURSOR TRACKING & EYE MECHANICS ---
@@ -319,7 +325,7 @@
             const eyeCenterY = rect.top + rect.height / 2;
 
             const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
-            const distance = Math.min(12, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterX) / 4);
+            const distance = Math.min(12, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY) / 4);
 
             const pupilX = Math.cos(angle) * distance;
             const pupilY = Math.sin(angle) * distance;
@@ -367,16 +373,26 @@
                         }
                     }, 800);
 
-                    // Tension shaking & red tint escalation loop (10 seconds)
+                    // Tension shaking, red tint, and component color synchronization loop (10 seconds)
                     clearInterval(tensionInterval);
                     tensionInterval = setInterval(() => {
                         const elapsed = (Date.now() - startTime) / 1000;
-                        const progress = Math.min(elapsed / 10, 1); // 0 to 1 over 10s
+                        const progress = Math.min(elapsed / 10, 1);
 
-                        // Calculate red tint intensity and shake amplitude
-                        const redIntensity = Math.floor(progress * 60); // up to rgb(60, 0, 0)
+                        // Background tint
+                        const redIntensity = Math.floor(progress * 60);
                         document.body.style.backgroundColor = `rgb(${redIntensity}, 0, 0)`;
 
+                        // Synchronized component tint (text, borders, submit button)
+                        const tintVal = Math.floor(255 - (progress * 155)); // 255 down to 100
+                        const tintHex = `rgb(255, ${tintVal}, ${tintVal})`;
+                        inputField.style.color = tintHex;
+                        inputField.style.borderColor = tintHex;
+                        const subBtn = document.getElementById('l2-submit-btn');
+                        subBtn.style.color = tintHex;
+                        subBtn.style.borderColor = tintHex;
+
+                        // Screen shake
                         const shakeX = (Math.random() - 0.5) * progress * 16;
                         const shakeY = (Math.random() - 0.5) * progress * 16;
                         document.getElementById('level-2').style.transform = `translate(${shakeX}px, ${shakeY}px)`;
@@ -410,6 +426,17 @@
             const level2Screen = document.getElementById('level-2');
             if (level2Screen) level2Screen.style.transform = "translate(0px, 0px)";
 
+            const inputField = document.getElementById('l2-input');
+            if (inputField) {
+                inputField.style.color = "#ffffff";
+                inputField.style.borderColor = "#ffffff";
+            }
+            const subBtn = document.getElementById('l2-submit-btn');
+            if (subBtn) {
+                subBtn.style.color = "#ffffff";
+                subBtn.style.borderColor = "#ffffff";
+            }
+
             const eye = document.getElementById('puzzle-eye');
             const pupil = document.getElementById('puzzle-pupil');
             if (eye) {
@@ -425,29 +452,23 @@
             clearInterval(tensionInterval);
             clearTimeout(survivalTimer);
             
-            // Instantly clear shake and red tint
+            // Clear shake and background tint
             document.body.style.backgroundColor = "#000000";
             document.getElementById('level-2').style.transform = "translate(0px, 0px)";
 
             const eye = document.getElementById('puzzle-eye');
             eye.classList.add('eye-closed');
             
-            // Swap Submit for the Crimson Proceed Button
+            // Stop deleting, lock textbox, and replace text with red "EYESPY"
+            const inputField = document.getElementById('l2-input');
+            inputField.value = "EYESPY";
+            inputField.style.color = "#ff0000";
+            inputField.style.borderColor = "#ff0000";
+            inputField.setAttribute('readonly', true);
+
+            // Swap submit for the Crimson Proceed Button
             document.getElementById('l2-submit-btn').style.display = "none";
             document.getElementById('l2-red-btn').style.display = "inline-block";
-        }
-
-        // --- VALIDATION FOR LEVEL 1 ---
-        function checkLevel1() {
-            const inputField = document.getElementById('l1-input');
-            const input = inputField.value.trim();
-            
-            if (input === "3301") {
-                goToLevel('level-2');
-            } else {
-                inputField.value = "";
-                inputField.focus();
-            }
         }
 
         // --- VALIDATION FOR LEVEL 2 SUBMIT ---
@@ -486,8 +507,11 @@
 
             if (e.key === 'Enter') {
                 if (document.getElementById('level-1').classList.contains('active')) {
-                    checkLevel1();
-                } else if (document.getElementById('level-2').classList.contains('active')) {
+                    e.preventDefault();
+                    return;
+                }
+
+                if (document.getElementById('level-2').classList.contains('active')) {
                     checkLevel2();
                 } else if (document.getElementById('level-3').classList.contains('active')) {
                     checkLevel3();
