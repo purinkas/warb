@@ -18,6 +18,7 @@
             height: 100vh;
             overflow: hidden;
             user-select: none; /* Prevents text highlighting globally */
+            transition: background-color 0.2s ease;
         }
 
         /* Screens container */
@@ -80,10 +81,19 @@
             text-transform: uppercase;
         }
 
+        /* Level 2 input special crimson text color */
+        #l2-input {
+            color: #ff1a1a;
+        }
+
         /* Custom placeholder styling for dark mode compatibility */
         .stealth-input::placeholder {
             color: #444444;
             font-size: 14px;
+        }
+
+        #l2-input::placeholder {
+            color: #550000;
         }
 
         .puzzle-text {
@@ -197,8 +207,8 @@
             <div id="puzzle-pupil" class="pupil"></div>
         </div>
         <div style="display: flex; flex-direction: column; align-items: center;">
-            <input type="text" id="l2-input" class="stealth-input" autocomplete="off" oninput="checkLevel2Input()">
-            <button class="btn" onclick="checkLevel2()" style="margin-top: 20px;">Submit</button>
+            <input type="text" id="l2-input" class="stealth-input" placeholder="EYESPY" autocomplete="off" oninput="checkLevel2Input()">
+            <button id="l2-submit-btn" class="btn" onclick="checkLevel2()" style="margin-top: 20px;">Submit</button>
             <button id="l2-red-btn" class="red-btn" onclick="goToLevel('level-3')">PROCEED</button>
         </div>
     </div>
@@ -207,10 +217,10 @@
     <div id="level-3" class="screen">
         <div class="puzzle-text">
             <p>any use of ai is prohibited.</p>
-            <p>inspe**C**t element is not allowed, it will never be **A**n answer for one of the p**P**uzzles.</p>
-            <p>external websites <em>**I**re</em> allowed, for example translation sites.</p>
-            <p>there is no "reward" unless i confirm **T**hat there will be one.</p>
-            <p>this website is just m**A**de for fun. if theres any bugs, try to tell me in person or em**L**ail me.</p>
+            <p>inspeCt element is not allowed, it will never be An answer for one of the pPuzzles.</p>
+            <p>external websites Ire allowed, for example translation sites.</p>
+            <p>there is no "reward" unless i confirm That there will be one.</p>
+            <p>this website is just mAde for fun. if theres any bugs, try to tell me in person or emLail me.</p>
         </div>
         <div style="display: flex; flex-direction: column; align-items: center;">
             <input type="text" id="l3-input" class="stealth-input" autocomplete="off">
@@ -228,7 +238,11 @@
     <script>
         let isEyeClosed = false;
         let isEyeRed = false;
-        let eyeWaitTimer = null;
+        let isSystemDeleting = false;
+        let deleteInterval = null;
+        let tensionInterval = null;
+        let survivalTimer = null;
+        let startTime = 0;
 
         // On page load, manage saved progress states
         window.addEventListener('DOMContentLoaded', () => {
@@ -249,7 +263,7 @@
             document.title = "The Puzzle";
 
             // Clear Level 2 timers/states when navigating away
-            clearTimeout(eyeWaitTimer);
+            resetRedEye();
 
             if (screenId === 'level-1') {
                 document.title = "PUZZLE 1";
@@ -257,10 +271,8 @@
             } else if (screenId === 'level-2') {
                 document.title = "PUZZLE 2";
                 isEyeClosed = false;
-                isEyeRed = false;
                 document.getElementById('puzzle-eye').classList.remove('eye-closed');
-                document.getElementById('puzzle-eye').style.borderColor = "#ffffff";
-                document.getElementById('puzzle-pupil').style.backgroundColor = "#ffffff";
+                document.getElementById('l2-submit-btn').style.display = "inline-block";
                 document.getElementById('l2-red-btn').style.display = "none";
                 document.getElementById('l2-input').value = "";
                 document.getElementById('l2-input').focus();
@@ -285,6 +297,7 @@
         }
 
         function resetGame() {
+            resetRedEye();
             localStorage.removeItem('puzzleProgress');
             showScreen('main-screen');
         }
@@ -306,7 +319,7 @@
             const eyeCenterY = rect.top + rect.height / 2;
 
             const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
-            const distance = Math.min(12, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY) / 4);
+            const distance = Math.min(12, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterX) / 4);
 
             const pupilX = Math.cos(angle) * distance;
             const pupilY = Math.sin(angle) * distance;
@@ -327,22 +340,101 @@
         }
 
         function checkLevel2Input() {
-            const inputVal = document.getElementById('l2-input').value.trim().toLowerCase();
-            if (inputVal === "eye" && !isEyeRed) {
-                isEyeRed = true;
-                const eye = document.getElementById('puzzle-eye');
-                const pupil = document.getElementById('puzzle-pupil');
-                eye.style.borderColor = "#ff0000";
-                pupil.style.backgroundColor = "#ff0000";
-                pupil.style.transform = "translate(0px, 0px)";
+            const inputField = document.getElementById('l2-input');
+            const val = inputField.value.trim().toLowerCase();
 
-                clearTimeout(eyeWaitTimer);
-                eyeWaitTimer = setTimeout(() => {
-                    if (isEyeRed && document.getElementById('level-2').classList.contains('active')) {
-                        document.getElementById('l2-red-btn').style.display = "inline-block";
+            if (val === "eye") {
+                if (!isEyeRed) {
+                    isEyeRed = true;
+                    startTime = Date.now();
+                    const eye = document.getElementById('puzzle-eye');
+                    const pupil = document.getElementById('puzzle-pupil');
+                    eye.style.borderColor = "#ff0000";
+                    pupil.style.backgroundColor = "#ff0000";
+                    pupil.style.transform = "translate(0px, 0px)";
+
+                    // Start auto-deletion loop
+                    clearInterval(deleteInterval);
+                    deleteInterval = setInterval(() => {
+                        if (inputField.value.length > 0) {
+                            isSystemDeleting = true;
+                            inputField.value = inputField.value.slice(0, -1);
+                            isSystemDeleting = false;
+
+                            if (inputField.value.trim().toLowerCase() === "") {
+                                resetRedEye();
+                            }
+                        }
+                    }, 800);
+
+                    // Tension shaking & red tint escalation loop (10 seconds)
+                    clearInterval(tensionInterval);
+                    tensionInterval = setInterval(() => {
+                        const elapsed = (Date.now() - startTime) / 1000;
+                        const progress = Math.min(elapsed / 10, 1); // 0 to 1 over 10s
+
+                        // Calculate red tint intensity and shake amplitude
+                        const redIntensity = Math.floor(progress * 60); // up to rgb(60, 0, 0)
+                        document.body.style.backgroundColor = `rgb(${redIntensity}, 0, 0)`;
+
+                        const shakeX = (Math.random() - 0.5) * progress * 16;
+                        const shakeY = (Math.random() - 0.5) * progress * 16;
+                        document.getElementById('level-2').style.transform = `translate(${shakeX}px, ${shakeY}px)`;
+                    }, 50);
+
+                    // 10-second survival timer
+                    clearTimeout(survivalTimer);
+                    survivalTimer = setTimeout(() => {
+                        if (isEyeRed) {
+                            successRedEye();
+                        }
+                    }, 10000);
+                }
+            } else {
+                if (!isSystemDeleting && isEyeRed) {
+                    const validPrefixes = ["", "e", "ey", "eye"];
+                    if (!validPrefixes.includes(val)) {
+                        resetRedEye();
                     }
-                }, 10000);
+                }
             }
+        }
+
+        function resetRedEye() {
+            isEyeRed = false;
+            isSystemDeleting = false;
+            clearInterval(deleteInterval);
+            clearInterval(tensionInterval);
+            clearTimeout(survivalTimer);
+            document.body.style.backgroundColor = "#000000";
+            const level2Screen = document.getElementById('level-2');
+            if (level2Screen) level2Screen.style.transform = "translate(0px, 0px)";
+
+            const eye = document.getElementById('puzzle-eye');
+            const pupil = document.getElementById('puzzle-pupil');
+            if (eye) {
+                eye.style.borderColor = "#ffffff";
+                pupil.style.backgroundColor = "#ffffff";
+            }
+        }
+
+        function successRedEye() {
+            isEyeRed = false;
+            isSystemDeleting = false;
+            clearInterval(deleteInterval);
+            clearInterval(tensionInterval);
+            clearTimeout(survivalTimer);
+            
+            // Instantly clear shake and red tint
+            document.body.style.backgroundColor = "#000000";
+            document.getElementById('level-2').style.transform = "translate(0px, 0px)";
+
+            const eye = document.getElementById('puzzle-eye');
+            eye.classList.add('eye-closed');
+            
+            // Swap Submit for the Crimson Proceed Button
+            document.getElementById('l2-submit-btn').style.display = "none";
+            document.getElementById('l2-red-btn').style.display = "inline-block";
         }
 
         // --- VALIDATION FOR LEVEL 1 ---
