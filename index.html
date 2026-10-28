@@ -229,7 +229,7 @@
         let isEyeClosed = false;
         let isEyeRed = false;
         let isSystemDeleting = false;
-        let deleteInterval = null;
+        let deletionTimeout = null;
         let tensionInterval = null;
         let survivalTimer = null;
         let startTime = 0;
@@ -325,7 +325,7 @@
             const eyeCenterY = rect.top + rect.height / 2;
 
             const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
-            const distance = Math.min(12, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY) / 4);
+            const distance = Math.min(12, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterX) / 4);
 
             const pupilX = Math.cos(angle) * distance;
             const pupilY = Math.sin(angle) * distance;
@@ -349,6 +349,12 @@
             const inputField = document.getElementById('l2-input');
             const val = inputField.value.trim().toLowerCase();
 
+            // Auto-stop / reset if box is empty
+            if (val === "" && isEyeRed && !isSystemDeleting) {
+                resetRedEye();
+                return;
+            }
+
             if (val === "eye") {
                 if (!isEyeRed) {
                     isEyeRed = true;
@@ -359,21 +365,10 @@
                     pupil.style.backgroundColor = "#ff0000";
                     pupil.style.transform = "translate(0px, 0px)";
 
-                    // Start auto-deletion loop
-                    clearInterval(deleteInterval);
-                    deleteInterval = setInterval(() => {
-                        if (inputField.value.length > 0) {
-                            isSystemDeleting = true;
-                            inputField.value = inputField.value.slice(0, -1);
-                            isSystemDeleting = false;
+                    // Start accelerating auto-deletion loop using recursive setTimeout
+                    scheduleNextDeletion();
 
-                            if (inputField.value.trim().toLowerCase() === "") {
-                                resetRedEye();
-                            }
-                        }
-                    }, 800);
-
-                    // Tension shaking, red tint, and component color synchronization loop (10 seconds)
+                    // Tension shaking, aggressive red tint, and component color synchronization loop (10 seconds)
                     clearInterval(tensionInterval);
                     tensionInterval = setInterval(() => {
                         const elapsed = (Date.now() - startTime) / 1000;
@@ -383,9 +378,9 @@
                         const redIntensity = Math.floor(progress * 60);
                         document.body.style.backgroundColor = `rgb(${redIntensity}, 0, 0)`;
 
-                        // Synchronized component tint (text, borders, submit button)
-                        const tintVal = Math.floor(255 - (progress * 155)); // 255 down to 100
-                        const tintHex = `rgb(255, ${tintVal}, ${tintVal})`;
+                        // Stronger synchronized component tint (shifts aggressively toward dark/bright red)
+                        const tintVal = Math.floor(255 - (progress * 220)); // 255 down to 35
+                        const tintHex = `rgb(255, ${Math.max(0, tintVal)}, ${Math.max(0, tintVal)})`;
                         inputField.style.color = tintHex;
                         inputField.style.borderColor = tintHex;
                         const subBtn = document.getElementById('l2-submit-btn');
@@ -416,10 +411,37 @@
             }
         }
 
+        // Accelerating deletion handler: starts slow (~1200ms) and speeds up (~150ms)
+        function scheduleNextDeletion() {
+            if (!isEyeRed) return;
+
+            const inputField = document.getElementById('l2-input');
+            const elapsed = (Date.now() - startTime) / 1000;
+            const progress = Math.min(elapsed / 10, 1);
+            
+            // Calculate dynamic delay: starts high, shrinks as time passes
+            const currentDelay = Math.max(150, 1200 - (progress * 1050));
+
+            deletionTimeout = setTimeout(() => {
+                if (!isEyeRed) return;
+                if (inputField.value.length > 0) {
+                    isSystemDeleting = true;
+                    inputField.value = inputField.value.slice(0, -1);
+                    isSystemDeleting = false;
+
+                    if (inputField.value.trim().toLowerCase() === "") {
+                        resetRedEye();
+                        return;
+                    }
+                }
+                scheduleNextDeletion();
+            }, currentDelay);
+        }
+
         function resetRedEye() {
             isEyeRed = false;
             isSystemDeleting = false;
-            clearInterval(deleteInterval);
+            clearTimeout(deletionTimeout);
             clearInterval(tensionInterval);
             clearTimeout(survivalTimer);
             document.body.style.backgroundColor = "#000000";
@@ -448,7 +470,7 @@
         function successRedEye() {
             isEyeRed = false;
             isSystemDeleting = false;
-            clearInterval(deleteInterval);
+            clearTimeout(deletionTimeout);
             clearInterval(tensionInterval);
             clearTimeout(survivalTimer);
             
